@@ -1,0 +1,28 @@
+{
+  "name": "restaurant-platform",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Restaurant Discovery & Booking Platform (monorepo)",
+  "packageManager": "pnpm@12.3.4",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "turbo run db:generate",
+    "db:migrate": "pnpm --filter @restaurant-platform/database db:migrate",
+    "db:studio": "pnpm --filter @restaurant-platform/database db:studio",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2",
+    "turbo": "~2.11.2",
+    "typescript": "~6.0.3"
+  }
+}

@@ -1,0 +1,852 @@
+// PROPOSED data model: Phase 1 review artifact.
+//
+// This file is NOT used by Prisma and has NOT been migrated.
+// After review it will be moved to packages/database/prisma/schema.prisma in Phase 2.
+//
+// Constraints Prisma cannot express (exclusion constraints, partial unique indexes,
+// CHECK constraints, composite FKs on non-PK columns) are listed in
+// proposed-constraints.sql and will be added to the first migration as raw SQL.
+//
+// References like Q-12 / T-05 point to docs/open-questions.md.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================================
+// Enums
+// ============================================================================
+
+enum UserRole {
+  CUSTOMER
+  RESTAURANT_OWNER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum Locale {
+  vi
+  en
+}
+
+enum RestaurantStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum SubmissionDecision {
+  APPROVED
+  REJECTED
+}
+
+enum ResourceType {
+  TABLE
+  VIP_ROOM
+}
+
+/// How VIP resources are used when the customer did not ask for one. Values pending Q-14.
+enum VipAllocationMode {
+  ONLY_WHEN_REQUESTED
+  ALLOW_AS_FALLBACK
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+  EXPIRED
+}
+
+enum BookingSource {
+  ONLINE
+  MANUAL
+}
+
+enum ActorType {
+  CUSTOMER
+  GUEST
+  RESTAURANT_OWNER
+  ADMIN
+  SYSTEM
+}
+
+enum BookingEventType {
+  CREATED
+  CONFIRMED
+  RESCHEDULED
+  CANCELLED
+  EXPIRED
+  COMPLETED
+  NO_SHOW_SUGGESTED
+  NO_SHOW_MARKED
+  STATUS_OVERRIDDEN
+}
+
+enum ReviewStatus {
+  PUBLISHED
+  HIDDEN
+}
+
+enum ReviewFlagStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+enum CollectionVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum NotificationType {
+  BOOKING_CREATED
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
+  BOOKING_RESCHEDULED
+  BOOKING_REMINDER_24H
+  BOOKING_REMINDER_2H
+  REVIEW_RECEIVED
+  REVIEW_REPLIED
+  RESTAURANT_ANNOUNCEMENT
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+}
+
+enum DeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+// ============================================================================
+// Identity
+// ============================================================================
+
+model User {
+  id              String     @id @default(uuid(7)) @db.Uuid
+  /// Stored lower-cased; unique case-insensitively.
+  email           String     @unique
+  passwordHash    String
+  fullName        String
+  phone           String?
+  role            UserRole   @default(CUSTOMER)
+  status          UserStatus @default(ACTIVE)
+  preferredLocale Locale     @default(vi)
+  emailVerifiedAt DateTime?  @db.Timestamptz(3)
+  createdAt       DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime   @updatedAt @db.Timestamptz(3)
+
+  refreshTokens    RefreshToken[]
+  ownedRestaurants Restaurant[]
+  bookings         Booking[]      @relation("BookingCustomer")
+  reviews          Review[]
+  favorites        Favorite[]
+  collections      Collection[]
+  notifications    Notification[]
+  auditLogs        AuditLog[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  userId       String    @db.Uuid
+  /// SHA-256 of the opaque token; the raw token is never stored.
+  tokenHash    String    @unique
+  /// All tokens produced by rotating one login share a family; reuse revokes the family.
+  familyId     String    @db.Uuid
+  expiresAt    DateTime  @db.Timestamptz(3)
+  revokedAt    DateTime? @db.Timestamptz(3)
+  replacedById String?   @db.Uuid
+  userAgent    String?
+  ipAddress    String?
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_tokens")
+}
+
+// ============================================================================
+// Geography
+// ============================================================================
+
+model Country {
+  /// ISO 3166-1 alpha-2, e.g. "VN".
+  code            String @id @db.Char(2)
+  /// Localised names: { "vi": "...", "en": "..." } (T-21)
+  names           Json
+  defaultTimezone String
+  defaultCurrency String @db.Char(3)
+
+  cities      City[]
+  restaurants Restaurant[]
+
+  @@map("countries")
+}
+
+model City {
+  id              String  @id @default(uuid(7)) @db.Uuid
+  countryCode     String  @db.Char(2)
+  slug            String
+  names           Json
+  defaultTimezone String
+  centerLatitude  Decimal @db.Decimal(9, 6)
+  centerLongitude Decimal @db.Decimal(9, 6)
+
+  country     Country      @relation(fields: [countryCode], references: [code])
+  restaurants Restaurant[]
+
+  @@unique([countryCode, slug])
+  @@map("cities")
+}
+
+// ============================================================================
+// Catalog
+// ============================================================================
+
+model Restaurant {
+  id          String           @id @default(uuid(7)) @db.Uuid
+  ownerId     String           @db.Uuid
+  slug        String           @unique
+  name        String
+  description String?
+  phone       String?
+  email       String?
+  website     String?
+  status      RestaurantStatus @default(DRAFT)
+  /// Price tier for filtering. Semantics pending Q-32.
+  priceLevel  Int?             @db.SmallInt
+
+  // Location
+  addressLine String
+  district    String?
+  cityId      String  @db.Uuid
+  countryCode String  @db.Char(2)
+  postalCode  String?
+  latitude    Decimal @db.Decimal(9, 6)
+  longitude   Decimal @db.Decimal(9, 6)
+  /// IANA timezone, e.g. "Asia/Ho_Chi_Minh".
+  timezone    String
+  /// ISO 4217, e.g. "VND".
+  currency    String  @db.Char(3)
+
+  // Denormalised aggregates, updated with reviews
+  ratingCount   Int      @default(0)
+  ratingAverage Decimal? @db.Decimal(3, 2)
+
+  suspendedAt      DateTime? @db.Timestamptz(3)
+  suspensionReason String?
+  approvedAt       DateTime? @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @db.Timestamptz(3)
+
+  owner           User                   @relation(fields: [ownerId], references: [id])
+  city            City                   @relation(fields: [cityId], references: [id])
+  country         Country                @relation(fields: [countryCode], references: [code])
+  bookingSettings BookingSettings?
+  submissions     RestaurantSubmission[]
+  photos          RestaurantPhoto[]
+  cuisines        RestaurantCuisine[]
+  amenities       RestaurantAmenity[]
+  menuSections    MenuSection[]
+  openingPeriods  OpeningPeriod[]
+  blackouts       Blackout[]
+  resources       Resource[]
+  combinations    ResourceCombination[]
+  bookings        Booking[]
+  reviews         Review[]
+  favorites       Favorite[]
+  collectionItems CollectionItem[]
+  announcements   Announcement[]
+
+  @@index([ownerId])
+  @@index([status, cityId])
+  @@map("restaurants")
+}
+
+model RestaurantSubmission {
+  id            String              @id @default(uuid(7)) @db.Uuid
+  restaurantId  String              @db.Uuid
+  submittedById String              @db.Uuid
+  submittedAt   DateTime            @default(now()) @db.Timestamptz(3)
+  /// Null while the submission awaits a decision (at most one per restaurant, see constraints).
+  decision      SubmissionDecision?
+  decidedById   String?             @db.Uuid
+  decidedAt     DateTime?           @db.Timestamptz(3)
+  adminNotes    String?
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id])
+
+  @@index([restaurantId, submittedAt])
+  @@map("restaurant_submissions")
+}
+
+model RestaurantPhoto {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  restaurantId String   @db.Uuid
+  /// Object storage key; public URL is derived (T-17).
+  storageKey   String
+  caption      String?
+  width        Int?
+  height       Int?
+  sortOrder    Int      @default(0)
+  isCover      Boolean  @default(false)
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId, sortOrder])
+  @@map("restaurant_photos")
+}
+
+model Cuisine {
+  id     String @id @default(uuid(7)) @db.Uuid
+  slug   String @unique
+  /// { "vi": "...", "en": "..." } (T-21)
+  labels Json
+
+  restaurants RestaurantCuisine[]
+
+  @@map("cuisines")
+}
+
+model RestaurantCuisine {
+  restaurantId String @db.Uuid
+  cuisineId    String @db.Uuid
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  cuisine    Cuisine    @relation(fields: [cuisineId], references: [id])
+
+  @@id([restaurantId, cuisineId])
+  @@index([cuisineId])
+  @@map("restaurant_cuisines")
+}
+
+model Amenity {
+  id     String @id @default(uuid(7)) @db.Uuid
+  slug   String @unique
+  labels Json
+
+  restaurants RestaurantAmenity[]
+
+  @@map("amenities")
+}
+
+model RestaurantAmenity {
+  restaurantId String @db.Uuid
+  amenityId    String @db.Uuid
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  amenity    Amenity    @relation(fields: [amenityId], references: [id])
+
+  @@id([restaurantId, amenityId])
+  @@index([amenityId])
+  @@map("restaurant_amenities")
+}
+
+model MenuSection {
+  id           String @id @default(uuid(7)) @db.Uuid
+  restaurantId String @db.Uuid
+  name         String
+  sortOrder    Int    @default(0)
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  items      MenuItem[]
+
+  @@index([restaurantId, sortOrder])
+  @@map("menu_sections")
+}
+
+model MenuItem {
+  id            String  @id @default(uuid(7)) @db.Uuid
+  sectionId     String  @db.Uuid
+  name          String
+  description   String?
+  priceMinor    BigInt?
+  priceCurrency String? @db.Char(3)
+  isAvailable   Boolean @default(true)
+  sortOrder     Int     @default(0)
+
+  section MenuSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId, sortOrder])
+  @@map("menu_items")
+}
+
+/// Weekly opening period in restaurant-local wall time. No overnight periods.
+model OpeningPeriod {
+  id           String @id @default(uuid(7)) @db.Uuid
+  restaurantId String @db.Uuid
+  /// ISO weekday: 1 = Monday ... 7 = Sunday.
+  weekday      Int    @db.SmallInt
+  /// Minutes since local midnight, [0, 1440).
+  opensAt      Int    @db.SmallInt
+  /// Minutes since local midnight, (opensAt, 1440].
+  closesAt     Int    @db.SmallInt
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId, weekday])
+  @@map("opening_periods")
+}
+
+/// Restaurant-wide closure. Entered in local time, stored as instants.
+model Blackout {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  restaurantId String   @db.Uuid
+  startsAt     DateTime @db.Timestamptz(3)
+  endsAt       DateTime @db.Timestamptz(3)
+  reason       String?
+  createdById  String   @db.Uuid
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId, startsAt])
+  @@map("blackouts")
+}
+
+model BookingSettings {
+  restaurantId                String            @id @db.Uuid
+  /// Default pending Q-12.
+  slotIntervalMinutes         Int               @default(30) @db.SmallInt
+  durationMinutes             Int               @default(120) @db.SmallInt
+  /// Default pending Q-12.
+  bufferMinutes               Int               @default(0) @db.SmallInt
+  /// Deadline for self-service cancellation and rescheduling.
+  cancellationDeadlineMinutes Int               @default(120)
+  cancellationPolicyText      String?
+  allowCombinations           Boolean           @default(true)
+  vipAllocationMode           VipAllocationMode @default(ONLY_WHEN_REQUESTED)
+  /// Party size range, lead time and horizon pending Q-11 (nullable = no limit).
+  minPartySize                Int?              @db.SmallInt
+  maxPartySize                Int?              @db.SmallInt
+  minLeadTimeMinutes          Int?
+  bookingHorizonDays          Int?              @db.SmallInt
+  updatedAt                   DateTime          @updatedAt @db.Timestamptz(3)
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@map("booking_settings")
+}
+
+// ============================================================================
+// Reservation resources
+// ============================================================================
+
+model Resource {
+  id           String       @id @default(uuid(7)) @db.Uuid
+  restaurantId String       @db.Uuid
+  name         String
+  type         ResourceType
+  capacity     Int          @db.SmallInt
+  isActive     Boolean      @default(true)
+  /// Higher = preferred earlier by the allocation engine.
+  priority     Int          @default(0)
+  feeMinor     BigInt?
+  feeCurrency  String?      @db.Char(3)
+  /// Archived resources keep their history but can never be allocated again.
+  archivedAt   DateTime?    @db.Timestamptz(3)
+  createdAt    DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime     @updatedAt @db.Timestamptz(3)
+
+  restaurant  Restaurant                  @relation(fields: [restaurantId], references: [id])
+  memberships ResourceCombinationMember[]
+  allocations BookingAllocation[]
+
+  /// Target of composite FKs that pin allocations/members to the same restaurant.
+  @@unique([id, restaurantId])
+  @@unique([restaurantId, name])
+  @@index([restaurantId, isActive, capacity])
+  @@map("resources")
+}
+
+model ResourceCombination {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  restaurantId String   @db.Uuid
+  name         String
+  /// Seating capacity of the combined resources (entered vs derived: Q-13).
+  capacity     Int      @db.SmallInt
+  priority     Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+
+  restaurant Restaurant                  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  members    ResourceCombinationMember[]
+  bookings   Booking[]
+
+  @@unique([id, restaurantId])
+  @@unique([restaurantId, name])
+  @@map("resource_combinations")
+}
+
+model ResourceCombinationMember {
+  combinationId String @db.Uuid
+  resourceId    String @db.Uuid
+  restaurantId  String @db.Uuid
+
+  combination ResourceCombination @relation(fields: [combinationId, restaurantId], references: [id, restaurantId], onDelete: Cascade)
+  resource    Resource            @relation(fields: [resourceId, restaurantId], references: [id, restaurantId])
+
+  @@id([combinationId, resourceId])
+  @@index([resourceId])
+  @@map("resource_combination_members")
+}
+
+// ============================================================================
+// Booking
+// ============================================================================
+
+model Booking {
+  id           String        @id @default(uuid(7)) @db.Uuid
+  /// Short human-readable code (T-22).
+  reference    String        @unique
+  restaurantId String        @db.Uuid
+  /// Null for guest and (possibly) manual bookings.
+  customerId   String?       @db.Uuid
+  source       BookingSource
+  status       BookingStatus
+
+  // Contact snapshot (required for guests; copied from profile for customers)
+  contactName   String
+  contactPhone  String?
+  contactEmail  String?
+  contactLocale Locale  @default(vi)
+
+  partySize             Int           @db.SmallInt
+  preferredResourceType ResourceType?
+  specialRequests       String?
+
+  startsAt                    DateTime @db.Timestamptz(3)
+  endsAt                      DateTime @db.Timestamptz(3)
+  // Snapshots of the rules in force when the booking was made (Q-40)
+  timezone                    String
+  durationMinutes             Int      @db.SmallInt
+  bufferMinutes               Int      @db.SmallInt
+  cancellationDeadlineMinutes Int
+
+  /// Combination used, if the allocation used one.
+  combinationId String? @db.Uuid
+  /// Sum of resource fees at booking time. Not collected in phase 1 (Q-27).
+  feeMinor      BigInt?
+  feeCurrency   String? @db.Char(3)
+
+  expiresAt          DateTime?  @db.Timestamptz(3)
+  confirmedAt        DateTime?  @db.Timestamptz(3)
+  cancelledAt        DateTime?  @db.Timestamptz(3)
+  cancelledByType    ActorType?
+  cancelledById      String?    @db.Uuid
+  cancellationReason String?
+  completedAt        DateTime?  @db.Timestamptz(3)
+  noShowSuggestedAt  DateTime?  @db.Timestamptz(3)
+  noShowMarkedAt     DateTime?  @db.Timestamptz(3)
+  rescheduleCount    Int        @default(0) @db.SmallInt
+
+  /// Client-supplied key; see idempotency rules (T-04).
+  idempotencyKey     String?  @unique
+  /// Hash of the normalised request, to reject key reuse with a different payload.
+  requestFingerprint String?
+  createdById        String?  @db.Uuid
+  /// Optimistic concurrency counter.
+  version            Int      @default(0)
+  createdAt          DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime @updatedAt @db.Timestamptz(3)
+
+  restaurant    Restaurant           @relation(fields: [restaurantId], references: [id])
+  customer      User?                @relation("BookingCustomer", fields: [customerId], references: [id])
+  combination   ResourceCombination? @relation(fields: [combinationId], references: [id])
+  allocations   BookingAllocation[]
+  events        BookingEvent[]
+  review        Review?
+  notifications Notification[]
+
+  @@index([restaurantId, startsAt])
+  @@index([customerId, startsAt])
+  @@index([status, endsAt])
+  @@index([status, expiresAt])
+  @@map("bookings")
+}
+
+/// One resource held by one booking. Overlap prevention lives here (exclusion constraint).
+model BookingAllocation {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  bookingId     String    @db.Uuid
+  resourceId    String    @db.Uuid
+  restaurantId  String    @db.Uuid
+  startsAt      DateTime  @db.Timestamptz(3)
+  /// endsAt + buffer: the resource is blocked for [startsAt, occupiedUntil).
+  occupiedUntil DateTime  @db.Timestamptz(3)
+  /// Set when the allocation stops blocking (cancel, expire, reschedule).
+  releasedAt    DateTime? @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+
+  booking  Booking  @relation(fields: [bookingId], references: [id])
+  resource Resource @relation(fields: [resourceId, restaurantId], references: [id, restaurantId])
+
+  @@index([restaurantId, startsAt])
+  @@index([bookingId])
+  @@map("booking_allocations")
+}
+
+model BookingEvent {
+  id               String           @id @default(uuid(7)) @db.Uuid
+  bookingId        String           @db.Uuid
+  type             BookingEventType
+  fromStatus       BookingStatus?
+  toStatus         BookingStatus?
+  previousStartsAt DateTime?        @db.Timestamptz(3)
+  newStartsAt      DateTime?        @db.Timestamptz(3)
+  actorType        ActorType
+  actorId          String?          @db.Uuid
+  reason           String?
+  metadata         Json?
+  createdAt        DateTime         @default(now()) @db.Timestamptz(3)
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId, createdAt])
+  @@map("booking_events")
+}
+
+// ============================================================================
+// Reviews
+// ============================================================================
+
+model Review {
+  id               String       @id @default(uuid(7)) @db.Uuid
+  bookingId        String       @unique @db.Uuid
+  restaurantId     String       @db.Uuid
+  authorId         String       @db.Uuid
+  /// Scale pending Q-41.
+  ratingOverall    Int          @db.SmallInt
+  ratingFood       Int          @db.SmallInt
+  ratingService    Int          @db.SmallInt
+  ratingAtmosphere Int          @db.SmallInt
+  body             String?
+  status           ReviewStatus @default(PUBLISHED)
+  editableUntil    DateTime     @db.Timestamptz(3)
+  editedAt         DateTime?    @db.Timestamptz(3)
+  createdAt        DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime     @updatedAt @db.Timestamptz(3)
+
+  booking    Booking      @relation(fields: [bookingId], references: [id])
+  restaurant Restaurant   @relation(fields: [restaurantId], references: [id])
+  author     User         @relation(fields: [authorId], references: [id])
+  reply      ReviewReply?
+  flags      ReviewFlag[]
+
+  @@index([restaurantId, status, createdAt])
+  @@index([authorId])
+  @@map("reviews")
+}
+
+model ReviewReply {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  reviewId  String   @unique @db.Uuid
+  authorId  String   @db.Uuid
+  body      String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@map("review_replies")
+}
+
+model ReviewFlag {
+  id           String           @id @default(uuid(7)) @db.Uuid
+  reviewId     String           @db.Uuid
+  reporterId   String?          @db.Uuid
+  reason       String
+  status       ReviewFlagStatus @default(OPEN)
+  resolvedById String?          @db.Uuid
+  resolvedAt   DateTime?        @db.Timestamptz(3)
+  resolution   String?
+  createdAt    DateTime         @default(now()) @db.Timestamptz(3)
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([reviewId])
+  @@map("review_flags")
+}
+
+// ============================================================================
+// Engagement
+// ============================================================================
+
+model Favorite {
+  userId       String   @db.Uuid
+  restaurantId String   @db.Uuid
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id])
+
+  @@id([userId, restaurantId])
+  @@index([restaurantId])
+  @@map("favorites")
+}
+
+model Collection {
+  id          String               @id @default(uuid(7)) @db.Uuid
+  ownerId     String               @db.Uuid
+  name        String
+  description String?
+  visibility  CollectionVisibility @default(PRIVATE)
+  createdAt   DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime             @updatedAt @db.Timestamptz(3)
+
+  owner User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  items CollectionItem[]
+
+  @@index([ownerId])
+  @@index([visibility])
+  @@map("collections")
+}
+
+model CollectionItem {
+  collectionId String   @db.Uuid
+  restaurantId String   @db.Uuid
+  position     Int      @default(0)
+  note         String?
+  addedAt      DateTime @default(now()) @db.Timestamptz(3)
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id])
+
+  @@id([collectionId, restaurantId])
+  @@index([restaurantId])
+  @@map("collection_items")
+}
+
+// ============================================================================
+// Notifications
+// ============================================================================
+
+model Notification {
+  id             String           @id @default(uuid(7)) @db.Uuid
+  type           NotificationType
+  /// Null when the recipient is a guest (email only).
+  recipientId    String?          @db.Uuid
+  recipientEmail String?
+  locale         Locale
+  bookingId      String?          @db.Uuid
+  announcementId String?          @db.Uuid
+  /// Template variables.
+  payload        Json
+  readAt         DateTime?        @db.Timestamptz(3)
+  createdAt      DateTime         @default(now()) @db.Timestamptz(3)
+
+  recipient    User?                  @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  booking      Booking?               @relation(fields: [bookingId], references: [id])
+  announcement Announcement?          @relation(fields: [announcementId], references: [id])
+  deliveries   NotificationDelivery[]
+
+  @@index([recipientId, createdAt])
+  @@map("notifications")
+}
+
+model NotificationDelivery {
+  id             String              @id @default(uuid(7)) @db.Uuid
+  notificationId String              @db.Uuid
+  channel        NotificationChannel
+  status         DeliveryStatus      @default(PENDING)
+  /// For reminders: when the delivery becomes due.
+  scheduledFor   DateTime?           @db.Timestamptz(3)
+  attempts       Int                 @default(0) @db.SmallInt
+  lastError      String?
+  sentAt         DateTime?           @db.Timestamptz(3)
+  createdAt      DateTime            @default(now()) @db.Timestamptz(3)
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@unique([notificationId, channel])
+  @@index([status, scheduledFor])
+  @@map("notification_deliveries")
+}
+
+model Announcement {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  restaurantId String   @db.Uuid
+  title        String
+  body         String
+  createdById  String   @db.Uuid
+  publishedAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  restaurant    Restaurant     @relation(fields: [restaurantId], references: [id])
+  notifications Notification[]
+
+  @@index([restaurantId, publishedAt])
+  @@map("announcements")
+}
+
+// ============================================================================
+// Platform
+// ============================================================================
+
+model AuditLog {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  /// Null for SYSTEM actions.
+  actorId      String?   @db.Uuid
+  actorType    ActorType
+  /// Dotted action name, e.g. "restaurant.approved", "booking.cancelled".
+  action       String
+  targetType   String
+  targetId     String
+  restaurantId String?   @db.Uuid
+  metadata     Json?
+  ipAddress    String?
+  userAgent    String?
+  requestId    String?
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+
+  // No FK to target or restaurant: audit rows must outlive any data change.
+  actor User? @relation(fields: [actorId], references: [id])
+
+  @@index([targetType, targetId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([restaurantId, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_logs")
+}
+
+/// Transactional outbox: written with the change, processed by the worker (T-07).
+model OutboxEvent {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  aggregateType String
+  aggregateId   String
+  eventType     String
+  payload       Json
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  processedAt   DateTime? @db.Timestamptz(3)
+  attempts      Int       @default(0) @db.SmallInt
+  lastError     String?
+
+  @@index([processedAt, createdAt])
+  @@map("outbox_events")
+}

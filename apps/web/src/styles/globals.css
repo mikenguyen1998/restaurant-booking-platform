@@ -1,0 +1,6 @@
+@import 'tailwindcss';
+
+/* Scan the shared UI package for Tailwind class names. */
+@source '../../../../packages/ui/src';
+
+/* Design tokens (colors, radius, fonts) will be defined here, e.g. by the shadcn/ui CLI. */

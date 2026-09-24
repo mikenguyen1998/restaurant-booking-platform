@@ -1,0 +1,18 @@
+// Prisma schema for the Restaurant Discovery & Booking Platform.
+//
+// Only the generator and datasource are configured here.
+// The domain model has intentionally not been designed yet.
+// The connection URL is supplied by ../prisma.config.ts (DATABASE_URL).
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+

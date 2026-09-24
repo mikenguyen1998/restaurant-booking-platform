@@ -1,0 +1,16 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Dependencies allowed (true) or explicitly not allowed (false) to run install scripts.
+allowBuilds:
+  '@prisma/engines': true
+  prisma: true
+  sharp: false
+  unrs-resolver: false
+
+minimumReleaseAgeExclude:
+  - '@next/eslint-plugin-next@16.3.6'
+  - eslint-config-next@16.3.6
+  - next@16.3.6
+  - '@nestjs/cli@12.0.4'

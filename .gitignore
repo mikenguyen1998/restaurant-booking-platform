@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Environment files (only .env.example is committed)
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Next.js
+.next/
+next-env.d.ts
+.vercel/
+
+# Turborepo
+.turbo/
+
+# Prisma generated client
+packages/database/src/generated/
+
+# Test coverage
+coverage/
+
+# Local Docker data (if bind mounts are used instead of named volumes)
+.docker-data/
+infrastructure/docker/**/data/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Misc
+*.pem
