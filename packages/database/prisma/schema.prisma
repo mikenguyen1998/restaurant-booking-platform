@@ -126,7 +126,9 @@ model Restaurant {
   // Location
   countryCode String  @default("VN") @db.VarChar(2)
   city        String
+  citySlug     String
   district    String?
+  districtSlug   String?
   address     String
 
   latitude  Decimal @db.Decimal(9, 6)
@@ -158,11 +160,13 @@ model Restaurant {
   announcements         RestaurantAnnouncement[]
   combinationRules      ResourceCombinationRule[]
   collectionRestaurants CollectionRestaurant[]
+  searchName            String @default("")
 
-  @@index([city])
-  @@index([district])
-  @@index([city, district])
-  @@index([status, city])
+  @@index([searchName(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([citySlug])
+  @@index([districtSlug])
+  @@index([citySlug, districtSlug])
+  @@index([status, citySlug])
 }
 
 // ======================================================

@@ -1,6 +1,6 @@
 # Project Progress
 
-Last updated: 2026-10-01 · Legend: ✅ done · 🚧 in progress · ⬜ todo
+Last updated: 2026-10-01 (pm) · Legend: ✅ done · 🚧 in progress · ⬜ todo
 
 ## Overview
 
@@ -8,7 +8,7 @@ Last updated: 2026-10-01 · Legend: ✅ done · 🚧 in progress · ⬜ todo
 |---|---|---|
 | 0. Foundation | ✅ | 100% |
 | 1. Database | ✅ | 100% |
-| 2. Restaurants API (public) | 🚧 | ~80% |
+| 2. Restaurants API (public) | ✅ | 100% |
 | 3. Auth & Users | ⬜ | 0% |
 | 4. Availability engine | 🚧 | ~5% |
 | 5. Booking flow + concurrency | ⬜ | 0% |
@@ -32,17 +32,23 @@ Last updated: 2026-10-01 · Legend: ✅ done · 🚧 in progress · ⬜ todo
 - [x] Initial migration
 - [x] Seed script
 
-## 2. Restaurants API (public) 🚧
+## 2. Restaurants API (public) ✅
 - [x] PrismaModule / PrismaService
 - [x] Health check endpoint
 - [x] Pagination DTO + util
 - [x] `GET /restaurants` (paginated)
 - [x] `GET /restaurants/:id`
 - [x] `GET /restaurants/:id/reviews`
-- [ ] Filters: city, district, cuisine, price level, search by name — DTO done, not yet applied in `getAllRestaurants` `where`
+- [x] Filters: city, district, cuisine (slug), price level, search by name
+- [x] Accent-insensitive name search: `searchName` + `normalizeSearch` (shared) + `pg_trgm` GIN index
+- [x] Seed sets `searchName`; Prisma pinned to 7.10, seed runs via `tsx`
+- [x] City/district slug columns (`citySlug`, `districtSlug` + `slugify`)
+- [x] Clean up slug migrations (squashed into `restaurant_location_slugs`)
+- [x] Canonical city spelling in seed ("Hà Nội" → `ha-noi`)
 - [x] Only list `APPROVED` restaurants
 - [x] Global ValidationPipe
-- [ ] Exception filter + consistent error format
+- [x] Global exception filter + consistent error format (Prisma P2002/P2025/P2003 mapped)
+- [x] `ParseUUIDPipe` on `:id` routes
 - [x] Swagger / OpenAPI docs (`/api`)
 - [x] Commit current work
 
@@ -115,6 +121,6 @@ Last updated: 2026-10-01 · Legend: ✅ done · 🚧 in progress · ⬜ todo
 ---
 
 ## Next up
-1. Apply list filters in `RestaurantsService.getAllRestaurants` (phase 2).
+1. Commit phase 2.
 2. Fix the controller injection, then implement slot generation (phase 4).
 3. Build `POST /bookings` with a double-booking guard + concurrency test (phase 5).

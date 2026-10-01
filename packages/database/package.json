@@ -31,6 +31,7 @@
     "pg": "^8.23.0"
   },
   "devDependencies": {
+    "@restaurant-platform/shared": "workspace:*",
     "@types/node": "^24.0.0",
     "@types/pg": "^8.23.1",
     "prisma": "^7.10.0",
