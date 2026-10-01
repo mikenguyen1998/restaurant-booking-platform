@@ -8,7 +8,7 @@ Last updated: 2026-10-01 · Legend: ✅ done · 🚧 in progress · ⬜ todo
 |---|---|---|
 | 0. Foundation | ✅ | 100% |
 | 1. Database | ✅ | 100% |
-| 2. Restaurants API (public) | 🚧 | ~50% |
+| 2. Restaurants API (public) | 🚧 | ~80% |
 | 3. Auth & Users | ⬜ | 0% |
 | 4. Availability engine | 🚧 | ~5% |
 | 5. Booking flow + concurrency | ⬜ | 0% |
@@ -39,11 +39,12 @@ Last updated: 2026-10-01 · Legend: ✅ done · 🚧 in progress · ⬜ todo
 - [x] `GET /restaurants` (paginated)
 - [x] `GET /restaurants/:id`
 - [x] `GET /restaurants/:id/reviews`
-- [ ] Filters: city, district, cuisine, price level, search by name
-- [ ] Only list `APPROVED` restaurants
-- [ ] Global ValidationPipe + exception filter + consistent error format
-- [ ] Swagger / OpenAPI docs
-- [ ] Commit current staged work
+- [ ] Filters: city, district, cuisine, price level, search by name — DTO done, not yet applied in `getAllRestaurants` `where`
+- [x] Only list `APPROVED` restaurants
+- [x] Global ValidationPipe
+- [ ] Exception filter + consistent error format
+- [x] Swagger / OpenAPI docs (`/api`)
+- [x] Commit current work
 
 ## 3. Auth & Users ⬜
 - [ ] Register / login (email + password, argon2/bcrypt)
@@ -114,6 +115,6 @@ Last updated: 2026-10-01 · Legend: ✅ done · 🚧 in progress · ⬜ todo
 ---
 
 ## Next up
-1. Commit current work (phase 2).
+1. Apply list filters in `RestaurantsService.getAllRestaurants` (phase 2).
 2. Fix the controller injection, then implement slot generation (phase 4).
 3. Build `POST /bookings` with a double-booking guard + concurrency test (phase 5).
