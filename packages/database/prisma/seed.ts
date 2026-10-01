@@ -5,6 +5,7 @@ process.loadEnvFile(
 );
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client.js";
+import { normalizeSearch, slugify } from "@restaurant-platform/shared";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL!,
@@ -149,16 +150,25 @@ async function main() {
     // RESTAURANT
     // ==================================================
 
+    const restaurantName = "Hanoi Dining House";
+
+    const location = { city: "Hà Nội", district: "Hoàn Kiếm" };
+
     const restaurant = await tx.restaurant.upsert({
       where: {
         id: IDS.restaurant,
       },
-      update: {},
+      update: {
+        searchName: normalizeSearch(restaurantName),
+        citySlug: slugify(location.city),
+        districtSlug: slugify(location.district),
+      },
       create: {
         id: IDS.restaurant,
         ownerId: owner.id,
 
-        name: "Hanoi Dining House",
+        name: restaurantName,
+        searchName: normalizeSearch(restaurantName),
         slug: "hanoi-dining-house",
         description:
           "A sample restaurant used for development and booking engine testing.",
@@ -166,8 +176,10 @@ async function main() {
         status: "APPROVED",
 
         countryCode: "VN",
-        city: "Hanoi",
-        district: "Hoan Kiem",
+        city: location.city,
+        district: location.district,
+        citySlug: slugify(location.city),
+        districtSlug: slugify(location.district),
         address: "10 Trang Tien, Hoan Kiem, Hanoi",
 
         latitude: 21.0258,

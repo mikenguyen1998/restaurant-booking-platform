@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  ParseUUIDPipe,
   Query,
 } from '@nestjs/common';
 import { RestaurantsService } from '../services/restaurants.service.js';
@@ -24,13 +25,13 @@ export class RestaurantsController {
   }
 
   @Get(':id')
-  getRestaurantById(@Param('id') id: string) {
+  getRestaurantById(@Param('id', ParseUUIDPipe) id: string) {
     return this.restaurantsService.getRestaurantById(id);
   }
 
   @Get(':id/reviews')
   getRestaurantReviews(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Query() query: ListRestaurantsDto,
   ) {
     return this.restaurantsService.getRestaurantReviews(id, query);
@@ -38,7 +39,7 @@ export class RestaurantsController {
 
   @Get(':id/availability')
   getRestaurantAvailability(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Query() query: GetRestaurantAvailabilityDto,
   ) {
     return this.availabilityService.getRestaurantAvailability(id, query);

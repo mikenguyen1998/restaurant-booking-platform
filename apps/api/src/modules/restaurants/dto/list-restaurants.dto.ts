@@ -1,4 +1,5 @@
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { PaginationDto } from '../../../common/dto/pagination.dto.js';
 
 export class ListRestaurantsDto extends PaginationDto {
@@ -15,7 +16,10 @@ export class ListRestaurantsDto extends PaginationDto {
   cuisine?: string;
 
   @IsOptional()
-  @IsNumber()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(4)
   priceLevel?: number;
 
   @IsOptional()

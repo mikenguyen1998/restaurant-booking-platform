@@ -1,23 +1,35 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Review } from '@restaurant-platform/database';
+import { Prisma, Review } from '@restaurant-platform/database';
+import { normalizeSearch, slugify } from '@restaurant-platform/shared';
 import {
   getPagination,
   PaginatedResult,
 } from '../../../common/utils/pagination.js';
 import { PrismaService } from '../../../database/prisma.service.js';
-import {
-  ListRestaurantsDto,
-} from '../dto/list-restaurants.dto.js';
+import { ListRestaurantsDto } from '../dto/list-restaurants.dto.js';
 
 @Injectable()
 export class RestaurantsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getAllRestaurants({ page, limit }: ListRestaurantsDto) {
-    const pagination = getPagination(page, limit);
+  async getAllRestaurants(options: ListRestaurantsDto) {
+    const pagination = getPagination(options.page, options.limit);
+    const searchName = options.name ? normalizeSearch(options.name) : undefined;
+    const citySlug = options.city ? slugify(options.city) : undefined;
+    const districtSlug = options.district ? slugify(options.district) : undefined;
+    const cuisine = options.cuisine?.trim();
 
-    const where = {
-      status: 'APPROVED' as const,
+    const where: Prisma.RestaurantWhereInput = {
+      status: 'APPROVED',
+      ...(searchName && { searchName: { contains: searchName } }),
+      ...(citySlug && { citySlug }),
+      ...(districtSlug && { districtSlug }),
+      ...(options.priceLevel !== undefined && {
+        priceLevel: options.priceLevel,
+      }),
+      ...(cuisine && {
+        cuisines: { some: { cuisine: { slug: cuisine } } },
+      }),
     };
 
     const [data, totalItems] = await this.prisma.$transaction([
@@ -139,3 +151,4 @@ export class RestaurantsService {
     };
   }
 }
+

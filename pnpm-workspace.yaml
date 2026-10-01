@@ -10,6 +10,7 @@ allowBuilds:
   prisma: true
   sharp: false
   unrs-resolver: false
+  workerd: true
 
 minimumReleaseAgeExclude:
   - '@next/eslint-plugin-next@16.3.6'
