@@ -5,6 +5,8 @@ packages:
 # Dependencies allowed (true) or explicitly not allowed (false) to run install scripts.
 allowBuilds:
   '@prisma/engines': true
+  '@scarf/scarf': true
+  esbuild: true
   prisma: true
   sharp: false
   unrs-resolver: false

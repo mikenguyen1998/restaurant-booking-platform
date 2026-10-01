@@ -7,9 +7,13 @@ import { ReviewsModule } from './modules/reviews/reviews.module.js';
 import { CollectionsModule } from './modules/collections/collections.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { AdminModule } from './modules/admin/admin.module.js';
+import { ConfigModule } from '@nestjs/config';
+import { HealthController } from './health/health.controller.js';
+import { HealthModule } from './health/health.module.js';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
     AuthModule,
     UsersModule,
     RestaurantsModule,
@@ -18,6 +22,7 @@ import { AdminModule } from './modules/admin/admin.module.js';
     CollectionsModule,
     NotificationsModule,
     AdminModule,
-  ],
+    HealthModule,
+  ]
 })
 export class AppModule {}
