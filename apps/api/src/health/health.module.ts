@@ -4,7 +4,7 @@ import { TerminusModule } from '@nestjs/terminus';
 import { PrismaModule } from '../database/prisma.module.js';
 
 @Module({
-    imports: [TerminusModule, PrismaModule],
-    controllers: [HealthController]
+  imports: [TerminusModule, PrismaModule],
+  controllers: [HealthController],
 })
 export class HealthModule {}

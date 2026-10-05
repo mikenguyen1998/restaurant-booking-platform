@@ -16,7 +16,9 @@ export class RestaurantsService {
     const pagination = getPagination(options.page, options.limit);
     const searchName = options.name ? normalizeSearch(options.name) : undefined;
     const citySlug = options.city ? slugify(options.city) : undefined;
-    const districtSlug = options.district ? slugify(options.district) : undefined;
+    const districtSlug = options.district
+      ? slugify(options.district)
+      : undefined;
     const cuisine = options.cuisine?.trim();
 
     const where: Prisma.RestaurantWhereInput = {
@@ -151,4 +153,3 @@ export class RestaurantsService {
     };
   }
 }
-

@@ -8,6 +8,6 @@ import { PrismaModule } from '../../database/prisma.module.js';
 @Module({
   controllers: [RestaurantsController],
   providers: [RestaurantsService, AvailabilityService],
-  imports: [PrismaModule]
+  imports: [PrismaModule],
 })
 export class RestaurantsModule {}

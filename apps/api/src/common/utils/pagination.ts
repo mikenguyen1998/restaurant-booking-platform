@@ -8,15 +8,9 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
-export function getPagination(
-  page?: number,
-  limit?: number,
-): PaginationParams {
+export function getPagination(page?: number, limit?: number): PaginationParams {
   const safePage = Math.max(DEFAULT_PAGE, page ?? DEFAULT_PAGE);
-  const safeLimit = Math.min(
-    MAX_LIMIT,
-    Math.max(1, limit ?? DEFAULT_LIMIT),
-  );
+  const safeLimit = Math.min(MAX_LIMIT, Math.max(1, limit ?? DEFAULT_LIMIT));
 
   return {
     page: safePage,

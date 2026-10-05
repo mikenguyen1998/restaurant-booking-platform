@@ -8,7 +8,6 @@ import { CollectionsModule } from './modules/collections/collections.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { AdminModule } from './modules/admin/admin.module.js';
 import { ConfigModule } from '@nestjs/config';
-import { HealthController } from './health/health.controller.js';
 import { HealthModule } from './health/health.module.js';
 
 @Module({
@@ -23,6 +22,6 @@ import { HealthModule } from './health/health.module.js';
     NotificationsModule,
     AdminModule,
     HealthModule,
-  ]
+  ],
 })
 export class AppModule {}

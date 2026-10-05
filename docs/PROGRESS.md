@@ -1,6 +1,8 @@
 # Project Progress
 
-Last updated: 2026-10-01 (pm) · Legend: ✅ done · 🚧 in progress · ⬜ todo
+Last updated: 2026-10-05 · Legend: ✅ done · 🚧 in progress · ⬜ todo
+
+Step-by-step checklist with guides: [TODO.md](TODO.md)
 
 ## Overview
 
@@ -60,7 +62,8 @@ Last updated: 2026-10-01 (pm) · Legend: ✅ done · 🚧 in progress · ⬜ tod
 
 ## 4. Availability engine 🚧
 - [x] `AvailabilityService` + DTO skeleton
-- [ ] Fix: `availabilityService` not injected as a field in `RestaurantsController`; endpoint still calls `RestaurantsService`
+- [x] `AvailabilityService` injected in `RestaurantsController`, `GET /restaurants/:id/availability` wired
+- [ ] Replace placeholder query in `AvailabilityService` (currently filters `restaurant` by `date`/`slot`, which aren't restaurant fields)
 - [ ] Generate slots from opening hours + `slotIntervalMinutes`
 - [ ] Exclude closures and past times (restaurant timezone)
 - [ ] Check resource conflicts via active `BookingResource` intervals (+ buffer)
@@ -121,6 +124,6 @@ Last updated: 2026-10-01 (pm) · Legend: ✅ done · 🚧 in progress · ⬜ tod
 ---
 
 ## Next up
-1. Commit phase 2.
-2. Fix the controller injection, then implement slot generation (phase 4).
+1. Implement slot generation + allocation in `AvailabilityService` (phase 4).
+2. Auth & roles (phase 3) — needed before bookings.
 3. Build `POST /bookings` with a double-booking guard + concurrency test (phase 5).
