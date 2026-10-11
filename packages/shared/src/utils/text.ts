@@ -17,3 +17,7 @@ export function slugify(input: string): string {
     .replace(/[\s-]+/g, '-') // spaces -> dash
     .replace(/^-|-$/g, ''); // trim dashes
 }
+
+export function normalizeEmail(email: string): string {
+  return email.trim().normalize('NFC').toLowerCase();
+}

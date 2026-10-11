@@ -1,3 +1,4 @@
+import { Public } from '@nestjs/authentication';
 import { Controller, Get } from '@nestjs/common';
 import {
   HealthCheckService,
@@ -6,6 +7,7 @@ import {
 } from '@nestjs/terminus';
 import { PrismaService } from '../database/prisma.service.js';
 
+@Public()
 @Controller('health')
 export class HealthController {
   constructor(

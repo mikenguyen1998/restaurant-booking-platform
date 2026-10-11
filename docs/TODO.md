@@ -11,41 +11,63 @@ Recommended order: **4 → 3 → 5 → 6 → 7 → 10**, then 8, 9, 11 if you ha
 
 Read first: 📘 [availability-and-allocation.md](domain/availability-and-allocation.md) · 📘 [invariants.md](domain/invariants.md)
 
-- [ ] Rewrite the placeholder query in `apps/api/src/modules/restaurants/services/availability.service.ts`
+- [x] Rewrite the placeholder query in `apps/api/src/modules/restaurants/services/availability.service.ts`
   - 🌐 [Prisma — relation queries (include/select)](https://www.prisma.io/docs/orm/prisma-client/queries/relation-queries)
-- [ ] Generate slots from opening hours + `slotIntervalMinutes`
+- [x] Generate slots from opening hours + `slotIntervalMinutes`
   - 🌐 [Luxon — date/time library](https://moment.github.io/luxon/#/) (intervals, adding minutes)
-- [ ] Exclude closures and past times, using the restaurant's timezone
+- [x] Move all Prisma queries into `RestaurantsRepository` (Controller → Service → Repository)
+- [x] Exclude closures and past times, using the restaurant's timezone
+  - [x] Drop slots with `startsAt <= now` (`DateTime.now().setZone(tz)`)
+  - [x] Repository: `findClosures(restaurantId, dayStart, dayEnd)`; drop slots whose `[startsAt, endsAt)` overlaps one (`intervalsOverlap` in `@restaurant-platform/shared`)
   - 🌐 [Luxon — zones](https://moment.github.io/luxon/#/zones)
-- [ ] Skip tables already used by active bookings (`BookingResource` intervals + buffer)
+- [x] Slot list returns `available` per slot (load busy allocations for the whole day once, check each slot in memory)
+- [x] Cache the slot-list / closed-day responses too (one `result`, one `cache.set`)
+- [x] Skip tables already used by active bookings (`BookingResource` intervals + buffer)
   - 🌐 [Prisma — filtering & comparison operators (lt/gt)](https://www.prisma.io/docs/orm/prisma-client/queries/filtering-and-sorting)
-- [ ] Allocation: best-fit table by capacity/priority, then table combinations
+- [x] Allocation: best-fit table by capacity/priority, then table combinations
+  - [x] Repository: active `ResourceCombinationRule`s with their resources
+  - [x] Pure function `rankCandidates(...)` (single before combination → best fit → priority → fewer tables → lowest id)
   - 📘 [availability-and-allocation.md](domain/availability-and-allocation.md) (rules are defined there)
-- [ ] Unit tests for slot generation & allocation
+- [x] Unit tests for slot generation & allocation
   - 🌐 [Vitest — getting started](https://vitest.dev/guide/)
   - 🌐 [NestJS — testing](https://docs.nestjs.com/fundamentals/testing)
   - 🌐 [NestJS + Vitest (SWC recipe)](https://docs.nestjs.com/recipes/swc#vitest)
-- [ ] Cache availability in Redis, invalidate when a booking changes
+- [ ] Cache availability in Redis, invalidate when a booking changes (read cache ✅; `invalidateAvailability()` bumps version → call it from bookings, opening hours, closures, tables)
   - 🌐 [NestJS — caching](https://docs.nestjs.com/techniques/caching)
+  - 🌐 [Keyv — Redis storage adapter (`@keyv/redis`)](https://keyv.org/docs/storage-adapters/redis/)
+  - 🌐 [cache-manager (the library Nest wraps)](https://github.com/jaredwray/cacheable/tree/main/packages/cache-manager)
+  - 🌐 [Redis — learn](https://redis.io/learn) · [Redis — commands](https://redis.io/docs/latest/commands/)
 
 ## 3. Auth & Users
 
 Read first: 📘 [permissions.md](domain/permissions.md)
 
-- [ ] Register / login with email + password (hash with argon2)
+- [x] `emailVerified` column on `User`, `EmailToken` table
+- [x] Email verification (follow 🌐 [NestJS — Verify email addresses](https://docs.nestjs.com/security/authentication))
+  - [x] `pnpm --filter @restaurant-platform/api add @nestjs/mail`; `WEB_URL` (already in `.env`) + `SMTP_URL` — 🌐 [NestJS — Mail](https://docs.nestjs.com/application/mail)
+  - [x] `MailModule.forRootAsync` (LogMailTransport in dev) + template `src/mail/templates/verify-email.html` (+ `assets` in `nest-cli.json`)
+  - [x] `UsersRepository.markEmailVerified(id, email)`: one conditional `updateMany({ where: { id, email }, data: { emailVerified: true } })`
+  - [x] `EmailVerificationMailer extends EmailVerificationHandler` (`send`, `markVerified`) registered as `'emailVerification'`
+  - [x] `emailVerification: { url: WEB_URL + '/verify-email' }` in `authentication.config.ts`
+  - [x] Send the link after sign-up; `POST /auth/email/verify` (public), `POST /auth/email/verification` (resend)
+  - [ ] `@Authenticate({ verifiedEmail: true })` on routes that need it (do it with `POST /bookings` in phase 5)
+
+- [x] Password reset (🌐 [NestJS — Reset forgotten passwords](https://docs.nestjs.com/security/authentication)): `PasswordResetMailer`, `PasswordResetController`, template
+- [x] `SessionStore` in `PrismaAuthenticationStore` (production refuses to start without it)
+- [x] Sign-up / sign-in with email + password (scrypt `PasswordHasher` from `@nestjs/authentication`)
   - 🌐 [NestJS — authentication](https://docs.nestjs.com/security/authentication)
   - 🌐 [node-argon2](https://github.com/ranisalt/node-argon2)
-- [ ] JWT access + refresh tokens
-  - 🌐 [JWT introduction](https://jwt.io/introduction)
-  - 🌐 [NestJS — Passport recipe (JWT strategy)](https://docs.nestjs.com/recipes/passport)
+- [x] Session cookies (`SessionAuth`, `POST /auth/sign-in`, `/sign-out`, `/sign-out-everywhere`, `GET /auth/sessions`) — replaced JWT, see T-12
+- [x] Prisma-backed stores for refresh tokens, MFA and email tokens (`PrismaAuthenticationStore`)
+  - 🌐 [NestJS — Authentication (sessions)](https://docs.nestjs.com/security/authentication)
 - [ ] Roles guard (`CUSTOMER`, `RESTAURANT_OWNER`, `ADMIN`)
   - 🌐 [NestJS — authorization (roles)](https://docs.nestjs.com/security/authorization)
   - 🌐 [NestJS — guards](https://docs.nestjs.com/guards)
-- [ ] `GET /me` endpoint
+- [x] `GET /me` endpoint
   - 🌐 [NestJS — custom decorators (`@CurrentUser`)](https://docs.nestjs.com/custom-decorators)
 - [ ] Rate-limit login/register
   - 🌐 [NestJS — rate limiting](https://docs.nestjs.com/security/rate-limiting)
-- [ ] Load secrets (JWT secret, DB URL) from env
+- [x] Load secrets (DB URL, SMTP, WEB_URL) from env
   - 🌐 [NestJS — configuration](https://docs.nestjs.com/techniques/configuration)
 
 ## 5. Booking flow + concurrency ⭐ portfolio highlight

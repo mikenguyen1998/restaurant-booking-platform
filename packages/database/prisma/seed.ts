@@ -1,11 +1,9 @@
-import path from "node:path";
+import path from 'node:path';
 
-process.loadEnvFile(
-  path.resolve(import.meta.dirname, "../../../.env"),
-);
-import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "../src/generated/prisma/client.js";
-import { normalizeSearch, slugify } from "@restaurant-platform/shared";
+process.loadEnvFile(path.resolve(import.meta.dirname, '../../../.env'));
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '../src/generated/prisma/client.js';
+import { normalizeSearch, slugify } from '@restaurant-platform/shared';
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL!,
@@ -14,49 +12,47 @@ const adapter = new PrismaPg({
 const prisma = new PrismaClient({ adapter });
 
 const IDS = {
-  owner: "11111111-1111-4111-8111-111111111111",
-  restaurant: "22222222-2222-4222-8222-222222222222",
+  owner: '11111111-1111-4111-8111-111111111111',
+  restaurant: '22222222-2222-4222-8222-222222222222',
 
-  table2: "33333333-3333-4333-8333-333333333331",
-  table4: "33333333-3333-4333-8333-333333333332",
-  table6: "33333333-3333-4333-8333-333333333333",
-  vip8: "33333333-3333-4333-8333-333333333334",
+  table2: '33333333-3333-4333-8333-333333333331',
+  table4: '33333333-3333-4333-8333-333333333332',
+  table6: '33333333-3333-4333-8333-333333333333',
+  vip8: '33333333-3333-4333-8333-333333333334',
 
-  cuisineVietnamese: "44444444-4444-4444-8444-444444444441",
-  cuisineJapanese: "44444444-4444-4444-8444-444444444442",
+  cuisineVietnamese: '44444444-4444-4444-8444-444444444441',
+  cuisineJapanese: '44444444-4444-4444-8444-444444444442',
 
-  amenityParking: "55555555-5555-4555-8555-555555555551",
-  amenityPrivateRoom: "55555555-5555-4555-8555-555555555552",
-  amenityWifi: "55555555-5555-4555-8555-555555555553",
+  amenityParking: '55555555-5555-4555-8555-555555555551',
+  amenityPrivateRoom: '55555555-5555-4555-8555-555555555552',
+  amenityWifi: '55555555-5555-4555-8555-555555555553',
 
-  setting: "66666666-6666-4666-8666-666666666661",
+  setting: '66666666-6666-4666-8666-666666666661',
 
-  bookingTable4: "77777777-7777-4777-8777-777777777771",
-  bookingVip8: "77777777-7777-4777-8777-777777777772",
+  bookingTable4: '77777777-7777-4777-8777-777777777771',
+  bookingVip8: '77777777-7777-4777-8777-777777777772',
 
-  bookingResourceTable4:
-    "88888888-8888-4888-8888-888888888881",
+  bookingResourceTable4: '88888888-8888-4888-8888-888888888881',
 
-  bookingResourceVip8:
-    "88888888-8888-4888-8888-888888888882",
+  bookingResourceVip8: '88888888-8888-4888-8888-888888888882',
 } as const;
 
 function dateAt(
   date: string,
   hour: number,
   minute = 0,
-  timezoneOffset = "+07:00",
+  timezoneOffset = '+07:00',
 ) {
   return new Date(
-    `${date}T${String(hour).padStart(2, "0")}:${String(minute).padStart(
+    `${date}T${String(hour).padStart(2, '0')}:${String(minute).padStart(
       2,
-      "0",
+      '0',
     )}:00${timezoneOffset}`,
   );
 }
 
 async function main() {
-  console.log("🌱 Starting database seed...");
+  console.log('🌱 Starting database seed...');
 
   await prisma.$transaction(async (tx) => {
     // ==================================================
@@ -70,10 +66,10 @@ async function main() {
       update: {},
       create: {
         id: IDS.owner,
-        email: "owner@hanoidining.local",
-        phone: "0900000001",
-        name: "Hanoi Dining Owner",
-        role: "RESTAURANT_OWNER",
+        email: 'owner@hanoidining.local',
+        phone: '0900000001',
+        name: 'Hanoi Dining Owner',
+        role: 'RESTAURANT_OWNER',
         passwordHash: null,
       },
     });
@@ -89,8 +85,8 @@ async function main() {
       update: {},
       create: {
         id: IDS.cuisineVietnamese,
-        name: "Vietnamese",
-        slug: "vietnamese",
+        name: 'Vietnamese',
+        slug: 'vietnamese',
       },
     });
 
@@ -101,8 +97,8 @@ async function main() {
       update: {},
       create: {
         id: IDS.cuisineJapanese,
-        name: "Japanese",
-        slug: "japanese",
+        name: 'Japanese',
+        slug: 'japanese',
       },
     });
 
@@ -117,8 +113,8 @@ async function main() {
       update: {},
       create: {
         id: IDS.amenityParking,
-        name: "Parking",
-        slug: "parking",
+        name: 'Parking',
+        slug: 'parking',
       },
     });
 
@@ -129,8 +125,8 @@ async function main() {
       update: {},
       create: {
         id: IDS.amenityPrivateRoom,
-        name: "Private Room",
-        slug: "private-room",
+        name: 'Private Room',
+        slug: 'private-room',
       },
     });
 
@@ -141,8 +137,8 @@ async function main() {
       update: {},
       create: {
         id: IDS.amenityWifi,
-        name: "Wi-Fi",
-        slug: "wifi",
+        name: 'Wi-Fi',
+        slug: 'wifi',
       },
     });
 
@@ -150,9 +146,9 @@ async function main() {
     // RESTAURANT
     // ==================================================
 
-    const restaurantName = "Hanoi Dining House";
+    const restaurantName = 'Hanoi Dining House';
 
-    const location = { city: "Hà Nội", district: "Hoàn Kiếm" };
+    const location = { city: 'Hà Nội', district: 'Hoàn Kiếm' };
 
     const restaurant = await tx.restaurant.upsert({
       where: {
@@ -169,24 +165,24 @@ async function main() {
 
         name: restaurantName,
         searchName: normalizeSearch(restaurantName),
-        slug: "hanoi-dining-house",
+        slug: 'hanoi-dining-house',
         description:
-          "A sample restaurant used for development and booking engine testing.",
+          'A sample restaurant used for development and booking engine testing.',
 
-        status: "APPROVED",
+        status: 'APPROVED',
 
-        countryCode: "VN",
+        countryCode: 'VN',
         city: location.city,
         district: location.district,
         citySlug: slugify(location.city),
         districtSlug: slugify(location.district),
-        address: "10 Trang Tien, Hoan Kiem, Hanoi",
+        address: '10 Trang Tien, Hoan Kiem, Hanoi',
 
         latitude: 21.0258,
         longitude: 105.8525,
 
-        timezone: "Asia/Ho_Chi_Minh",
-        currencyCode: "VND",
+        timezone: 'Asia/Ho_Chi_Minh',
+        currencyCode: 'VND',
 
         priceLevel: 3,
       },
@@ -262,16 +258,22 @@ async function main() {
     // ==================================================
 
     const openingHours = [
-      ["MONDAY", 10, 0, 22, 0],
-      ["TUESDAY", 10, 0, 22, 0],
-      ["WEDNESDAY", 10, 0, 22, 0],
-      ["THURSDAY", 10, 0, 22, 0],
-      ["FRIDAY", 10, 0, 23, 0],
-      ["SATURDAY", 10, 0, 23, 0],
-      ["SUNDAY", 10, 0, 22, 0],
+      ['MONDAY', 10, 0, 22, 0],
+      ['TUESDAY', 10, 0, 22, 0],
+      ['WEDNESDAY', 10, 0, 22, 0],
+      ['THURSDAY', 10, 0, 22, 0],
+      ['FRIDAY', 10, 0, 23, 0],
+      ['SATURDAY', 10, 0, 23, 0],
+      ['SUNDAY', 10, 0, 22, 0],
     ] as const;
 
-    for (const [dayOfWeek, openHour, openMinute, closeHour, closeMinute] of openingHours) {
+    for (const [
+      dayOfWeek,
+      openHour,
+      openMinute,
+      closeHour,
+      closeMinute,
+    ] of openingHours) {
       await tx.openingHour.upsert({
         where: {
           restaurantId_dayOfWeek: {
@@ -283,14 +285,14 @@ async function main() {
           openTime: new Date(
             `1970-01-01T${String(openHour).padStart(
               2,
-              "0",
-            )}:${String(openMinute).padStart(2, "0")}:00Z`,
+              '0',
+            )}:${String(openMinute).padStart(2, '0')}:00Z`,
           ),
           closeTime: new Date(
             `1970-01-01T${String(closeHour).padStart(
               2,
-              "0",
-            )}:${String(closeMinute).padStart(2, "0")}:00Z`,
+              '0',
+            )}:${String(closeMinute).padStart(2, '0')}:00Z`,
           ),
         },
         create: {
@@ -299,14 +301,14 @@ async function main() {
           openTime: new Date(
             `1970-01-01T${String(openHour).padStart(
               2,
-              "0",
-            )}:${String(openMinute).padStart(2, "0")}:00Z`,
+              '0',
+            )}:${String(openMinute).padStart(2, '0')}:00Z`,
           ),
           closeTime: new Date(
             `1970-01-01T${String(closeHour).padStart(
               2,
-              "0",
-            )}:${String(closeMinute).padStart(2, "0")}:00Z`,
+              '0',
+            )}:${String(closeMinute).padStart(2, '0')}:00Z`,
           ),
         },
       });
@@ -319,29 +321,29 @@ async function main() {
     const resources = [
       {
         id: IDS.table2,
-        name: "Table 2",
-        type: "TABLE" as const,
+        name: 'Table 2',
+        type: 'TABLE' as const,
         capacity: 2,
         priority: 10,
       },
       {
         id: IDS.table4,
-        name: "Table 4",
-        type: "TABLE" as const,
+        name: 'Table 4',
+        type: 'TABLE' as const,
         capacity: 4,
         priority: 20,
       },
       {
         id: IDS.table6,
-        name: "Table 6",
-        type: "TABLE" as const,
+        name: 'Table 6',
+        type: 'TABLE' as const,
         capacity: 6,
         priority: 30,
       },
       {
         id: IDS.vip8,
-        name: "VIP Room 8",
-        type: "VIP_ROOM" as const,
+        name: 'VIP Room 8',
+        type: 'VIP_ROOM' as const,
         capacity: 8,
         priority: 100,
         reservationFeeAmount: 500000,
@@ -358,7 +360,7 @@ async function main() {
           type: resource.type,
           capacity: resource.capacity,
           priority: resource.priority,
-          status: "ACTIVE",
+          status: 'ACTIVE',
           reservationFeeAmount: resource.reservationFeeAmount,
         },
         create: {
@@ -367,7 +369,7 @@ async function main() {
 
           name: resource.name,
           type: resource.type,
-          status: "ACTIVE",
+          status: 'ACTIVE',
           capacity: resource.capacity,
           priority: resource.priority,
           reservationFeeAmount: resource.reservationFeeAmount,
@@ -379,7 +381,7 @@ async function main() {
     // RESTAURANT IMAGE
     // ==================================================
 
-    const imageId = "99999999-9999-4999-8999-999999999991";
+    const imageId = '99999999-9999-4999-8999-999999999991';
 
     await tx.restaurantImage.upsert({
       where: {
@@ -389,8 +391,8 @@ async function main() {
       create: {
         id: imageId,
         restaurantId: restaurant.id,
-        url: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4",
-        altText: "Hanoi Dining House",
+        url: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4',
+        altText: 'Hanoi Dining House',
         sortOrder: 0,
       },
     });
@@ -408,8 +410,8 @@ async function main() {
     // Table 6   -> free
     //
 
-    const bookingStart = dateAt("2026-10-10", 19, 0);
-    const bookingEnd = dateAt("2026-10-10", 21, 0);
+    const bookingStart = dateAt('2026-10-10', 19, 0);
+    const bookingEnd = dateAt('2026-10-10', 21, 0);
 
     const bookingTable4 = await tx.booking.upsert({
       where: {
@@ -418,14 +420,14 @@ async function main() {
       update: {},
       create: {
         id: IDS.bookingTable4,
-        bookingNumber: "HN-20261010-0001",
+        bookingNumber: 'HN-20261010-0001',
 
         restaurantId: restaurant.id,
         customerId: null,
         createdById: owner.id,
 
-        status: "CONFIRMED",
-        source: "MANUAL",
+        status: 'CONFIRMED',
+        source: 'MANUAL',
 
         partySize: 4,
 
@@ -433,12 +435,12 @@ async function main() {
         endsAt: bookingEnd,
         expiresAt: null,
 
-        guestName: "Seed Customer 1",
-        guestPhone: "0900000011",
-        guestEmail: "customer1@example.com",
-        specialRequest: "Window seat if possible",
+        guestName: 'Seed Customer 1',
+        guestPhone: '0900000011',
+        guestEmail: 'customer1@example.com',
+        specialRequest: 'Window seat if possible',
 
-        preferredResourceType: "TABLE",
+        preferredResourceType: 'TABLE',
 
         confirmedAt: bookingStart,
       },
@@ -451,14 +453,14 @@ async function main() {
       update: {},
       create: {
         id: IDS.bookingVip8,
-        bookingNumber: "HN-20261010-0002",
+        bookingNumber: 'HN-20261010-0002',
 
         restaurantId: restaurant.id,
         customerId: null,
         createdById: owner.id,
 
-        status: "CONFIRMED",
-        source: "MANUAL",
+        status: 'CONFIRMED',
+        source: 'MANUAL',
 
         partySize: 8,
 
@@ -466,12 +468,12 @@ async function main() {
         endsAt: bookingEnd,
         expiresAt: null,
 
-        guestName: "Seed Customer 2",
-        guestPhone: "0900000012",
-        guestEmail: "customer2@example.com",
-        specialRequest: "Private room",
+        guestName: 'Seed Customer 2',
+        guestPhone: '0900000012',
+        guestEmail: 'customer2@example.com',
+        specialRequest: 'Private room',
 
-        preferredResourceType: "VIP_ROOM",
+        preferredResourceType: 'VIP_ROOM',
 
         confirmedAt: bookingStart,
       },
@@ -493,7 +495,7 @@ async function main() {
         resourceId: IDS.table4,
 
         allocatedFromAt: bookingStart,
-        allocatedUntilAt: dateAt("2026-10-10", 21, 15),
+        allocatedUntilAt: dateAt('2026-10-10', 21, 15),
 
         isActive: true,
       },
@@ -511,7 +513,7 @@ async function main() {
         resourceId: IDS.vip8,
 
         allocatedFromAt: bookingStart,
-        allocatedUntilAt: dateAt("2026-10-10", 21, 15),
+        allocatedUntilAt: dateAt('2026-10-10', 21, 15),
 
         isActive: true,
       },
@@ -521,18 +523,18 @@ async function main() {
     // OUTPUT
     // ==================================================
 
-    console.log("✅ Seeded owner:", owner.email);
-    console.log("✅ Seeded restaurant:", restaurant.name);
-    console.log("✅ Seeded resources:", resources.length);
-    console.log("✅ Seeded existing bookings: 2");
+    console.log('✅ Seeded owner:', owner.email);
+    console.log('✅ Seeded restaurant:', restaurant.name);
+    console.log('✅ Seeded resources:', resources.length);
+    console.log('✅ Seeded existing bookings: 2');
   });
 
-  console.log("🌱 Seed completed.");
+  console.log('🌱 Seed completed.');
 }
 
 main()
   .catch((error) => {
-    console.error("❌ Seed failed:");
+    console.error('❌ Seed failed:');
     console.error(error);
 
     process.exit(1);

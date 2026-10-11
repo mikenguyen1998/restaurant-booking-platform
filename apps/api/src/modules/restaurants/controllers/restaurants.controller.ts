@@ -1,15 +1,12 @@
-import {
-  Controller,
-  Get,
-  Param,
-  ParseUUIDPipe,
-  Query,
-} from '@nestjs/common';
+import { Public } from '@nestjs/authentication';
+import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { RestaurantsService } from '../services/restaurants.service.js';
 import { ListRestaurantsDto } from '../dto/list-restaurants.dto.js';
 import { AvailabilityService } from '../services/availability.service.js';
 import { GetRestaurantAvailabilityDto } from '../dto/availability.dto.js';
 
+// Discovery and availability are open to guests (docs/domain/permissions.md).
+@Public()
 @Controller('restaurants')
 export class RestaurantsController {
   constructor(
@@ -39,7 +36,7 @@ export class RestaurantsController {
   getRestaurantAvailability(
     @Param('id', ParseUUIDPipe) id: string,
     @Query() query: GetRestaurantAvailabilityDto,
-  ) {
+  ): Promise<unknown> {
     return this.availabilityService.getRestaurantAvailability(id, query);
   }
 }

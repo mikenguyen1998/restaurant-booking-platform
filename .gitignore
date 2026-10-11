@@ -27,6 +27,9 @@ packages/database/src/generated/
 # Test coverage
 coverage/
 
+# Mails written to disk by FileMailTransport in development (.eml files)
+var/mail/
+
 # Local Docker data (if bind mounts are used instead of named volumes)
 .docker-data/
 infrastructure/docker/**/data/

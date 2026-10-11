@@ -51,13 +51,13 @@ Check the diff against:
 
 Classify each finding:
 
-| Level | Meaning |
-|---|---|
-| 🔴 blocking | wrong behaviour, compile/lint/test failure, violates a domain invariant |
-| 🟡 should fix | works but fragile, misleading, or inconsistent |
-| 🟢 nit | naming, comments, small cleanups |
+| Level         | Meaning                                                                 |
+| ------------- | ----------------------------------------------------------------------- |
+| 🔴 blocking   | wrong behaviour, compile/lint/test failure, violates a domain invariant |
+| 🟡 should fix | works but fragile, misleading, or inconsistent                          |
+| 🟢 nit        | naming, comments, small cleanups                                        |
 
-Report findings (file:line, what is wrong, *why*, a hint for the fix — a
+Report findings (file:line, what is wrong, _why_, a hint for the fix — a
 small snippet is fine, not a full rewrite).
 
 ## 4. Gate
@@ -71,11 +71,11 @@ small snippet is fine, not a full rewrite).
 
 For each changed unit, add or extend a co-located `*.spec.ts`:
 
-| Code | Test location | How |
-|---|---|---|
-| Pure helpers in `packages/shared/src/**` | next to the file, e.g. `utils/time.spec.ts` | plain Vitest, no mocks |
-| Helpers in `apps/api/src/common/utils/**` | next to the file | plain Vitest |
-| Nest services in `apps/api/src/modules/**/services` | next to the service | instantiate the class with a mocked `PrismaService` (`vi.fn()` per model method used); no DB |
+| Code                                                | Test location                               | How                                                                                          |
+| --------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Pure helpers in `packages/shared/src/**`            | next to the file, e.g. `utils/time.spec.ts` | plain Vitest, no mocks                                                                       |
+| Helpers in `apps/api/src/common/utils/**`           | next to the file                            | plain Vitest                                                                                 |
+| Nest services in `apps/api/src/modules/**/services` | next to the service                         | instantiate the class with a mocked `PrismaService` (`vi.fn()` per model method used); no DB |
 
 Rules:
 

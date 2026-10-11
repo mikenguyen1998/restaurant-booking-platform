@@ -1,5 +1,12 @@
 import { Module } from '@nestjs/common';
+import { PrismaModule } from '../../database/prisma.module.js';
+import { MeController } from './controllers/me.controller.js';
+import { UsersRepository } from './repositories/users.repository.js';
 
-// TODO: users module. Structure: controllers/, services/, dto/, entities/, repositories/.
-@Module({})
+@Module({
+  imports: [PrismaModule],
+  controllers: [MeController],
+  providers: [UsersRepository],
+  exports: [UsersRepository],
+})
 export class UsersModule {}

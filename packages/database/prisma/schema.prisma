@@ -81,12 +81,14 @@ enum AuditActorType {
 // ======================================================
 
 model User {
-  id           String   @id @default(uuid()) @db.Uuid
-  email        String?  @unique
-  phone        String?  @unique
-  name         String
-  passwordHash String?
-  role         UserRole @default(CUSTOMER)
+  id            String   @id @default(uuid()) @db.Uuid
+  email         String?  @unique
+  // Set only when the owner opened a verification link sent to `email`; reset when `email` changes.
+  emailVerified Boolean  @default(false)
+  phone         String?  @unique
+  name          String
+  passwordHash  String?
+  role          UserRole @default(CUSTOMER)
 
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
@@ -124,12 +126,12 @@ model Restaurant {
   status RestaurantStatus @default(DRAFT)
 
   // Location
-  countryCode String  @default("VN") @db.VarChar(2)
-  city        String
+  countryCode  String  @default("VN") @db.VarChar(2)
+  city         String
   citySlug     String
-  district    String?
-  districtSlug   String?
-  address     String
+  district     String?
+  districtSlug String?
+  address      String
 
   latitude  Decimal @db.Decimal(9, 6)
   longitude Decimal @db.Decimal(9, 6)
@@ -160,7 +162,7 @@ model Restaurant {
   announcements         RestaurantAnnouncement[]
   combinationRules      ResourceCombinationRule[]
   collectionRestaurants CollectionRestaurant[]
-  searchName            String @default("")
+  searchName            String                    @default("")
 
   @@index([searchName(ops: raw("gin_trgm_ops"))], type: Gin)
   @@index([citySlug])
@@ -636,4 +638,98 @@ model AuditLog {
   @@index([actorId, createdAt])
   @@index([targetType, targetId, createdAt])
   @@index([action, createdAt])
+}
+
+// ======================================================
+// AUTH STATE (@nestjs/authentication stores)
+// ======================================================
+// Tables of the store contracts (docs.nestjs.com/security/authentication#keep-sessions-and-tokens-in-your-database),
+// written only by PrismaAuthenticationStore. Tokens and links are stored as SHA-256 hashes.
+
+// Server-side sessions (SessionStore). The API signs in with JWTs only, but the package
+// revokes sessions alongside refresh tokens (password reset, sign out everywhere), so
+// production requires the store. `id` is the SHA-256 of the session token.
+model Session {
+  id           String   @id
+  // No foreign key, as in the docs: the package owns these rows.
+  userId       String
+  createdAt    DateTime @db.Timestamptz(3)
+  expiresAt    DateTime @db.Timestamptz(3)
+  lastActiveAt DateTime @db.Timestamptz(3)
+  // 'pending' | 'verified' (MfaState)
+  mfa          String?
+  metadata     Json?
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model RefreshToken {
+  // SHA-256 of the token: the raw token is never stored.
+  id              String    @id
+  // Every rotation stays in the family of the original sign-in.
+  familyId        String
+  // No foreign key, as in the docs: the package owns these rows and only ever passes an id.
+  userId          String
+  createdAt       DateTime  @db.Timestamptz(3)
+  expiresAt       DateTime  @db.Timestamptz(3)
+  // The family cannot be extended past this, however often it rotates.
+  familyExpiresAt DateTime  @db.Timestamptz(3)
+  // Set once, by a conditional update; a second use means the token was stolen.
+  usedAt          DateTime? @db.Timestamptz(3)
+  // A family is revoked when any of its tokens is: that covers a successor saved after the revocation.
+  revoked         Boolean   @default(false)
+  // Claims fixed at sign-in (amr, auth_time, …) carried by every token of the family.
+  claims          Json?
+
+  @@index([familyId])
+  @@index([userId])
+  @@index([familyExpiresAt])
+}
+
+// Email verification and password reset links.
+model EmailToken {
+  // SHA-256 of the token in the link.
+  id          String   @id
+  // 'email-verification' | 'password-reset' (EmailTokenPurpose)
+  purpose     String
+  userId      String
+  // The address the link was sent to: it verifies only while the account keeps it.
+  email       String
+  fingerprint String?
+  createdAt   DateTime @db.Timestamptz(3)
+  expiresAt   DateTime @db.Timestamptz(3)
+
+  @@index([userId, purpose])
+  @@index([expiresAt])
+}
+
+// TOTP authenticator per user. `secret` arrives encrypted (AES-256-GCM) from MfaService.
+// Required by @nestjs/authentication in production even before 2FA is offered:
+// every sign-in looks up the user's authenticator.
+model MfaAuthenticator {
+  userId        String  @id
+  secret        String
+  confirmed     Boolean
+  pendingSecret String?
+  // Highest TOTP time step already accepted: a code works once.
+  lastUsedStep  Int?
+}
+
+// Recovery codes, hashed with scrypt by the package.
+model MfaRecoveryCode {
+  userId   String
+  codeHash String
+
+  @@id([userId, codeHash])
+}
+
+// Failed second-factor attempts, counted per window to rate-limit guessing.
+model MfaFailure {
+  id       Int      @id @default(autoincrement())
+  userId   String
+  failedAt DateTime @db.Timestamptz(3)
+
+  @@index([userId, failedAt])
+  @@index([failedAt])
 }

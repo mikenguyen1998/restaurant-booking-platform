@@ -31,3 +31,20 @@ export interface PaginatedResult<T> {
   data: T[];
   meta: PaginationMeta;
 }
+
+export function toPaginatedResult<T>(
+  data: T[],
+  totalItems: number,
+  pagination: PaginationParams,
+): PaginatedResult<T> {
+  return {
+    data,
+    meta: {
+      totalItems,
+      itemCount: data.length,
+      itemsPerPage: pagination.limit,
+      totalPages: Math.ceil(totalItems / pagination.limit),
+      currentPage: pagination.page,
+    },
+  };
+}
