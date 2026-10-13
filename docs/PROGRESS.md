@@ -58,7 +58,9 @@ Step-by-step checklist with guides: [TODO.md](TODO.md)
 - [x] Commit current work
 
 ## 3. Auth & Users 🚧
+
 Following https://docs.nestjs.com/security/authentication (`@nestjs/authentication`), **session cookies** (moved from JWT on 2026-10-11, see T-12), class-validator DTOs.
+
 - [x] `POST /auth/sign-up` (creates the account and signs it in), `POST /auth/sign-in` → `__Host-sid` cookie
 - [x] `POST /auth/sign-out`, `POST /auth/sign-out-everywhere`, `GET /auth/sessions`, `DELETE /auth/sessions/:id`
 - [x] `SessionAuth` (`SessionCookieProvider`) + global guard; `@Public()` on restaurants, health, auth
@@ -69,7 +71,8 @@ Following https://docs.nestjs.com/security/authentication (`@nestjs/authenticati
 - [x] `PrismaAuthenticationStore` (sessions, refreshTokens, mfa, emailTokens) passing the library's contract suite incl. concurrency; production starts
 - [x] NestJS 12.1.2; `@nestjs/authentication` + `@nestjs/mail` pinned to 0.0.1
 - [ ] Roles / policies (`@nestjs/authorization`)
-- [ ] Rate limit sign-in / sign-up / forgot (`@nestjs/throttler`, Redis storage)
+- [x] Rate limit: global `AuthThrottlerGuard` (email + IP), 100/min default; sign-in & sign-up 5/15 min, forgot & resend 3/15 min
+- [x] Throttler counts in Redis (`@nest-lab/throttler-storage-redis`, peer range stops at Nest 11 — works on 12.1, recheck on upgrades); `TRUST_PROXY` env for `trust proxy`
 
 ## 4. Availability engine 🚧
 

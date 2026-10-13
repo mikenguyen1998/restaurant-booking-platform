@@ -1,9 +1,9 @@
 import { Public } from '@nestjs/authentication';
 import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
-import { RestaurantsService } from '../services/restaurants.service.js';
+import { GetRestaurantAvailabilityDto } from '../dto/availability.dto.js';
 import { ListRestaurantsDto } from '../dto/list-restaurants.dto.js';
 import { AvailabilityService } from '../services/availability.service.js';
-import { GetRestaurantAvailabilityDto } from '../dto/availability.dto.js';
+import { RestaurantsService } from '../services/restaurants.service.js';
 
 // Discovery and availability are open to guests (docs/domain/permissions.md).
 @Public()

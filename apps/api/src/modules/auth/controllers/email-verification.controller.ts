@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import type { PublicUser } from '../../users/entities/user.entity.js';
 import { VerifyEmailDto } from '../dto/auth.dto.js';
+import { minutes, Throttle } from '@nestjs/throttler';
 
 @Controller('auth/email')
 export class EmailVerificationController {
@@ -35,6 +36,7 @@ export class EmailVerificationController {
 
   /** "Send the link again", to the signed-in user's current address only. */
   @Post('verification')
+  @Throttle({ default: { limit: 3, ttl: minutes(15) } })
   @HttpCode(HttpStatus.ACCEPTED)
   async resend(@CurrentUser() user: PublicUser): Promise<void> {
     if (user.emailVerified) {

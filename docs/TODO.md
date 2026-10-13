@@ -65,7 +65,8 @@ Read first: 📘 [permissions.md](domain/permissions.md)
   - 🌐 [NestJS — guards](https://docs.nestjs.com/guards)
 - [x] `GET /me` endpoint
   - 🌐 [NestJS — custom decorators (`@CurrentUser`)](https://docs.nestjs.com/custom-decorators)
-- [ ] Rate-limit login/register
+- [x] Rate-limit sign-in / sign-up / forgot (`AuthThrottlerGuard`, `@Throttle`)
+- [x] Throttler storage in Redis + `TRUST_PROXY` (set it to the number of proxies when deploying)
   - 🌐 [NestJS — rate limiting](https://docs.nestjs.com/security/rate-limiting)
 - [x] Load secrets (DB URL, SMTP, WEB_URL) from env
   - 🌐 [NestJS — configuration](https://docs.nestjs.com/techniques/configuration)
