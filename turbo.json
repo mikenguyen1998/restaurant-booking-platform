@@ -23,7 +23,9 @@
       "cache": false
     },
     "test": {
-      "dependsOn": ["^build", "db:generate"]
+      "dependsOn": ["^build", "db:generate"],
+      "cache": false,
+      "env": ["DATABASE_URL", "TEST_DATABASE_URL", "REDIS_URL"]
     }
   }
 }
