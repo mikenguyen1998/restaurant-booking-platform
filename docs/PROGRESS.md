@@ -1,25 +1,27 @@
 # Project Progress
 
-Last updated: 2026-10-14 · Legend: ✅ done · 🚧 in progress · ⬜ todo
+Last updated: 2026-10-15 · Legend: ✅ done · 🚧 in progress · ⬜ todo
 
-Step-by-step checklist with guides: [TODO.md](TODO.md)
+Step-by-step checklist with guides: [TODO.md](TODO.md).
+
+**Accepted policy:** [issue #4](https://github.com/mikenguyen1998/restaurant-booking-platform/issues/4); documentation reconciled for issue #3. Checked items below describe earlier **implemented behavior**, not policy compliance. [Implementation status](product/implementation-status.md) identifies source gaps. No policy tests were written/run during this documentation reconciliation; booking writes remain absent.
 
 ## Overview
 
-| Phase                                | Status | Progress                                              |
-| ------------------------------------ | ------ | ----------------------------------------------------- |
-| 0. Foundation                        | ✅     | 100%                                                  |
-| 1. Database                          | ✅     | 100%                                                  |
-| 2. Restaurants API (public)          | ✅     | 100%                                                  |
-| 3. Auth & Users                      | 🚧     | ~80%                                                  |
-| 4. Availability engine               | 🚧     | Most read-path items done; write invalidation pending |
-| 5. Booking flow + concurrency        | ⬜     | 0%                                                    |
-| 6. Owner dashboard API               | ⬜     | 0%                                                    |
-| 7. Web app (Next.js)                 | ⬜     | 0%                                                    |
-| 8. Background jobs & notifications   | ⬜     | 0%                                                    |
-| 9. Reviews / favorites / collections | ⬜     | 0%                                                    |
-| 10. Quality, deploy & portfolio      | ⬜     | ~15%                                                  |
-| 11. AI feature (stretch)             | ⬜     | 0%                                                    |
+| Phase                                | Status | Progress                                            |
+| ------------------------------------ | ------ | --------------------------------------------------- |
+| 0. Foundation                        | ✅     | 100%                                                |
+| 1. Database                          | ✅     | 100%                                                |
+| 2. Restaurants API (public)          | ✅     | 100%                                                |
+| 3. Auth & Users                      | 🚧     | ~80%                                                |
+| 4. Availability engine               | 🚧     | Read path exists; #4 policy gaps and writes pending |
+| 5. Booking flow + concurrency        | ⬜     | 0%                                                  |
+| 6. Owner dashboard API               | ⬜     | 0%                                                  |
+| 7. Web app (Next.js)                 | ⬜     | 0%                                                  |
+| 8. Background jobs & notifications   | ⬜     | 0%                                                  |
+| 9. Reviews / favorites / collections | ⬜     | 0%                                                  |
+| 10. Quality, deploy & portfolio      | ⬜     | ~15%                                                |
+| 11. AI feature (stretch)             | ⬜     | 0%                                                  |
 
 ---
 
@@ -78,12 +80,12 @@ Following https://docs.nestjs.com/security/authentication (`@nestjs/authenticati
 
 - [x] `AvailabilityService` + DTO skeleton
 - [x] `AvailabilityService` injected in `RestaurantsController`, `GET /restaurants/:id/availability` wired
-- [x] Replace placeholder query in `AvailabilityService` (currently filters `restaurant` by `date`/`slot`, which aren't restaurant fields)
-- [x] Generate slots from opening hours + `slotIntervalMinutes`
+- [x] Replace earlier placeholder query in `AvailabilityService`
+- [x] Existing slots use opening hours + interval and require meal end <= close (implemented behavior; conflicts with accepted cutoff policy)
 - [x] Exclude closures and past times (restaurant timezone)
 - [x] Check resource conflicts via active `BookingResource` intervals (+ buffer)
-- [x] Allocation: best-fit table by capacity/priority, then combination rules
-- [x] Unit tests for slot generation & allocation (Vitest)
+- [x] Existing candidate ranking and summed-member combinations (implemented behavior; entered capacity and VIP policy pending)
+- [x] Existing unit tests for current slot/candidate helpers (not proof of #4 compliance)
 - [ ] Cache availability in Redis, invalidate on booking change (🚧 read-through cache + versioned keys done; bump version on booking create/cancel in phase 5)
 
 ## 5. Booking flow + concurrency ⬜ (portfolio highlight)
@@ -91,7 +93,7 @@ Following https://docs.nestjs.com/security/authentication (`@nestjs/authenticati
 - [ ] `POST /bookings` with allocation inside a transaction
 - [ ] Prevent double booking (Postgres exclusion constraint on `tstzrange` or `SELECT … FOR UPDATE`)
 - [ ] Idempotency key for create
-- [ ] Lifecycle: PENDING → CONFIRMED / CANCELLED / COMPLETED / NO_SHOW / EXPIRED
+- [ ] V1 lifecycle: create CONFIRMED; cancel/reschedule/arrival/hold/contact/NO_SHOW/correction according to [accepted lifecycle](domain/booking-lifecycle.md); PENDING/EXPIRED reserved for future flow
 - [ ] Cancellation deadline rule
 - [ ] `bookingNumber` generator
 - [ ] Concurrency test: N parallel requests → exactly 1 succeeds
@@ -117,7 +119,7 @@ Following https://docs.nestjs.com/security/authentication (`@nestjs/authenticati
 ## 8. Background jobs & notifications ⬜
 
 - [ ] BullMQ on Redis
-- [ ] Expire unconfirmed PENDING bookings
+- [ ] Arrival-aware completion, hold/absence alerts and booking reminders; PENDING expiry is a future-flow proposal
 - [ ] Email confirmation / reminder
 - [ ] In-app notifications
 
@@ -148,7 +150,7 @@ Following https://docs.nestjs.com/security/authentication (`@nestjs/authenticati
 ## Next up
 
 1. Roles / policies and ownership checks (phase 3); review with `/review-and-test`.
-2. Confirm booking policies and review availability cache invalidation (phase 4).
+2. Refine unresolved decisions/technical designs and reconcile availability implementation with accepted #4 policy (phase 4); documentation only in this task.
 3. Prepare schema/migrations for overlap prevention and idempotency, then build
    `POST /bookings` with real PostgreSQL concurrency tests (phase 5).
 

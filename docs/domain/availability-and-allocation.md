@@ -1,185 +1,79 @@
 # Availability and allocation
 
-This is the most important backend subsystem. It has two paths:
+**Accepted policy:** [issue #4](https://github.com/mikenguyen1998/restaurant-booking-platform/issues/4), sections 1–2. Booking lifecycle is maintained in [booking-lifecycle.md](booking-lifecycle.md). **Implemented behavior** and gaps below are static source observations, not results of a booking policy test run.
 
-| Path                                                   | Purpose                                                   | Authority                                               |
-| ------------------------------------------------------ | --------------------------------------------------------- | ------------------------------------------------------- |
-| **Availability query** (read)                          | Show which slots can be booked for a date and party size. | Advisory only. May be stale by the time the user books. |
-| **Allocation** (write, inside the booking transaction) | Choose and reserve resources for a booking.               | The single source of truth.                             |
+## Read and write paths
 
-Both paths share the same pure domain functions (slot generation, candidate
-generation, ranking) so they cannot drift apart. Only the write path touches locks
-and constraints.
+Availability queries are advisory and may become stale. Allocation inside the booking transaction is authoritative and must revalidate current restaurant/slot/resource state. Sharing pure slot/candidate/ranking functions is a **technical proposal**; only the availability read path exists today, not booking writes.
 
-## Inputs
+## Time and settings
 
-| Source                        | Data                                                                                     |
-| ----------------------------- | ---------------------------------------------------------------------------------------- |
-| Request                       | restaurant, local date, local slot time, party size, preferences (e.g. VIP/private room) |
-| BookingSettings               | slot interval, duration (default 120), buffer, deadline, allocation preferences          |
-| Restaurant                    | timezone (IANA), status, currency                                                        |
-| OpeningPeriod                 | weekly wall-clock periods                                                                |
-| Blackout                      | restaurant-wide closures (instants)                                                      |
-| Resource, ResourceCombination | active resources, capacities, priorities, allowed combinations                           |
-| BookingAllocation             | unreleased allocations overlapping the window                                            |
+Resolve requested local date/time in the restaurant's IANA timezone. Store instants; meal interval is `[startsAt, endsAt)` and occupied interval is `[startsAt, endsAt + buffer)`. Half-open overlap is `aStart < bEnd && bStart < aEnd`.
 
-## Time model
+| Setting           | Accepted policy                                                                                       | Source status                                                 |
+| ----------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `lastBookingTime` | Independent of closing time; start exactly at cutoff allowed. Meal and buffer may extend past closing | Pending implementation; no setting in live schema             |
+| Duration          | Existing baseline default 120 minutes, restaurant-configurable                                        | Setting exists                                                |
+| Minimum lead time | Default 120 minutes, restaurant-configurable, never below 30                                          | Pending implementation                                        |
+| Horizon           | Default 30 days, restaurant-configurable                                                              | Pending implementation                                        |
+| Party size        | Restaurant configures min/max; candidate must still fit                                               | DTO only enforces `partySize >= 1`; restaurant limits pending |
+| Slot interval     | Default 30 minutes, restaurant-configurable                                                           | Setting exists                                                |
+| Buffer            | Default 15 minutes, restaurant-configurable                                                           | Setting exists and occupied-window read checks include buffer |
 
-1. The request carries a **local date and local time** (e.g. `2026-10-02`, `19:00`).
-2. The engine resolves it to an instant using the restaurant timezone:
-   `startsAt = zoned(localDate, localTime, restaurant.timezone)`.
-3. `endsAt = startsAt + duration`; `occupiedUntil = endsAt + buffer`.
-4. The **occupied window** is the half-open interval `[startsAt, occupiedUntil)`.
-   Half-open intervals mean a booking ending (plus buffer) at 20:15 does not conflict
-   with one starting at 20:15.
-5. All stored values are instants; local values are derived for display.
+Cutoff applies to generated starts; it is not a meal-end or cleanup deadline. FE warns at the final slot that the table is held for 15 minutes and the kitchen will close soon, using configured restaurant information when available. Do not invent a kitchen closing timestamp.
 
-Worked example from the requirements: booking 18:00–20:00 with a 15-minute buffer
-occupies `[18:00, 20:15)`. A booking starting 20:00 on the same resource would
-occupy `[20:00, …)` and overlap, so it is rejected. A booking starting 20:15 fits.
-The buffer also applies before an existing booking: with 120-minute duration and
-15-minute buffer, a booking at 16:00 occupies `[16:00, 18:15)` and overlaps an 18:00
-booking, so the latest compatible earlier start is 15:45.
+**Unresolved decision / technical refinement:** cutoff configuration shape for multiple periods/dates and exact lead-time/horizon boundary calculation (elapsed versus calendar days) are not specified by #4. DST gap/overlap behavior remains a technical proposal (T-06); do not present it as accepted product policy.
 
-Daylight-saving time does not exist in Vietnam but will exist internationally.
-Rules for non-existent and ambiguous local times are a technical decision
-([T-06](../open-questions.md#technical-decisions)); proposal: skip non-existent slot
-times and use the earlier offset for ambiguous ones.
+**Implemented behavior:** `packages/shared/src/utils/time.ts::generateSlots` requires `start + duration <= close`; `AvailabilityService` only removes starts at/before now, not starts inside the accepted lead-time window. These behaviors do not implement the accepted cutoff/lead-time/horizon policy. Existing unit tests describe the current implementation and do not settle policy.
 
-## Slot generation
+## Closures
 
-For a restaurant, local date `D`, and settings:
+Support restaurant-wide and individual resource time-bounded closures. A closure blocks new booking placement when the **meal interval** overlaps it; buffer-only overlap does not block. Resource closures disqualify the affected table/room for the meal, including any combination containing it; other candidates may remain available.
 
-```text
-periods = opening periods where weekday = weekday(D)
-for each period [open, close):
-    t = open
-    while slotFits(t, period):          # Q-08
-        emit slot (D, t)
-        t = t + slotInterval
-```
+Owners may create a closure immediately while retaining existing bookings and allocations. Alert the owner to contact affected guests; closure creation does not silently cancel reservations. Settings changes also do not rewrite accepted snapshots of existing bookings.
 
-`slotFits` depends on an unresolved rule ([Q-08](../open-questions.md#business-questions)):
+Examples: meal 18:00–20:00, occupied until 20:15. Closure 20:00–20:10 overlaps only cleanup and does not block the meal; closure 19:45–20:10 does. An already-confirmed booking stays intact if a later closure overlaps it, and the owner is alerted.
 
-- option A: the booking must **end** by closing (`t + duration ≤ close`), or
-- option B: only the **start** must be before closing (`t < close`, "last seating").
+**Implemented behavior:** restaurant-wide closure checks use meal overlap. **Pending implementation:** resource closures, closure writes and affected-booking owner alerts. Closure persistence/lock coordination is technical design, not an existing guarantee.
 
-Whether the buffer may extend past closing is part of the same question.
+## Candidates and VIP
 
-A generated slot is then **dropped** when any of these hold:
+Single candidates are active resources with sufficient capacity. Combinations must be explicitly allowed by the restaurant and have active/eligible members. Owner enters actual combination seating capacity, **no greater than the sum of member capacities**; the booking's party size must fit that entered capacity. Small parties may use a larger resource; ranking prefers best fit. Do not substitute summed capacity for the entered capacity.
 
-| Rule                                               | Status                                                                                                                     |
-| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `startsAt ≤ now`                                   | Confirmed (cannot book the past)                                                                                           |
-| `startsAt < now + minimum lead time`               | Lead time value open ([Q-11](../open-questions.md#business-questions))                                                     |
-| `startsAt > now + booking horizon`                 | Horizon value open ([Q-11](../open-questions.md#business-questions))                                                       |
-| `[startsAt, endsAt)` overlaps a blackout           | Confirmed (closure). Whether the buffer must also be outside the blackout: [Q-08](../open-questions.md#business-questions) |
-| Party size outside the restaurant's accepted range | Range open ([Q-11](../open-questions.md#business-questions))                                                               |
+Restaurant configures VIP behavior: `ONLY_WHEN_REQUESTED` or `ALLOW_AS_FALLBACK`. When VIP is requested and unavailable, report no VIP availability and ask for consent before using regular seating. No silent downgrade. The fallback interaction/DTO is pending technical design.
 
-## Candidates
-
-A **candidate** is a set of resources that may serve one booking:
-
-1. **Single resource**: every active resource with `capacity ≥ partySize`.
-2. **Combination**: every active `ResourceCombination` whose members are all active
-   and whose seating capacity `≥ partySize`.
-
-The restaurant controls combinability entirely through explicit combinations: two
-resources can only be allocated together if a combination listing them exists. This
-avoids combinatorial search and matches "restaurant controls which resources can be
-combined". Whether a combination's capacity is entered by the owner or derived as the
-sum of members, and whether small parties may occupy large resources, are open
-([Q-13](../open-questions.md#business-questions)).
-
-A candidate is **free** for a window `W` when none of its resources has an unreleased
-allocation overlapping `W`.
+**Implemented behavior:** `buildCandidates` uses summed member capacity; live combinations have no entered-capacity field. Resource queries omit type and `AvailabilityService` does not process the DTO's `preference`. Owner-entered capacity and VIP filtering/consent are **pending implementation**.
 
 ## Ranking
 
-Free candidates are ranked, and the first one that commits wins. The **factors** are
-given by the requirements; their **order** is a business decision
-([Q-15](../open-questions.md#business-questions)). Proposed order, for review:
+Accepted order (#4 questions 22–25):
 
-1. **Preference match.** If the customer asked for VIP/private room, candidates
-   containing a `VIP_ROOM` come first. How VIP resources are treated when **not**
-   requested is the restaurant's "VIP preference behaviour" setting
-   ([Q-14](../open-questions.md#business-questions)); what happens when a requested
-   VIP room is unavailable is [Q-16](../open-questions.md#business-questions).
-2. **Single before combination.** Prefer not to join tables.
-3. **Best fit.** Smallest `capacity − partySize`.
-4. **Restaurant priority.** Resource priority, or combination priority.
-5. **Fewer resources.** For combinations of equal fit.
-6. **Stable tiebreak.** Lowest resource id, so results are deterministic and testable.
+1. Accepted preference/VIP rules.
+2. Single resource before combination.
+3. Least spare capacity (`candidate capacity − partySize`).
+4. Restaurant priority.
+5. Deterministic tie-breaks where they do not change the preceding order.
 
-## Allocation (write path)
+The current comparator orders single → least spare → higher priority → fewer resources → id. The latter tie-breaks may be retained under #4, but preference eligibility/ranking is missing. Priority direction is existing implemented behavior, not a newly approved business rule.
 
-Runs inside the booking transaction at `READ COMMITTED` isolation. Correctness does
-not depend on the availability query being current.
+## Occupancy and allocation
 
-```text
-BEGIN
- 1. idempotency: if a booking with this idempotency key exists
-        same request fingerprint → return it (no new allocation)
-        different fingerprint    → reject (conflict)
- 2. SELECT restaurant FOR KEY SHARE
-        guards against concurrent blackout creation, settings change,
-        suspension (those take FOR UPDATE on the restaurant row)
-        check status = APPROVED
- 3. re-validate the slot with current settings, opening periods, blackouts
- 4. SELECT candidate resources FOR KEY SHARE (ordered by id)
-        guards against concurrent deactivation (FOR UPDATE on the resource)
- 5. load unreleased allocations overlapping the window; build and rank candidates
- 6. INSERT booking (status CONFIRMED in phase 1, snapshots, idempotency key)
- 7. for candidate in ranked candidates:
-        SAVEPOINT try
-        INSERT one allocation per resource, in resource-id order
-        ok                        → break
-        exclusion violation 23P01 → ROLLBACK TO SAVEPOINT try; continue
- 8. no candidate committed → ROLLBACK; respond "slot no longer available"
- 9. INSERT booking events, outbox event, audit log (manual bookings)
-COMMIT
-```
+Meal 18:00–20:00 plus 15-minute buffer occupies `[18:00,20:15)`. Another booking on the same resource at 20:00 conflicts; one at 20:15 does not. Buffer applies in both directions. Hold extensions change the waiting deadline only, not this occupied interval; see [arrival and hold](booking-lifecycle.md#arrival-hold-and-contact).
 
-Step 7 retries in-transaction on the next candidate when another transaction won the
-race for the first choice. The database exclusion constraint is what makes this safe:
-the loaded allocations in step 5 are only used for ranking.
+**Technical proposal, pending implementation:** PostgreSQL exclusion constraints on active occupied windows; transactionally authorize/replay idempotency, validate slot/closures, rank eligible candidates, reserve all candidate resources and persist `CONFIRMED` plus snapshots/history/outbox. If a candidate conflicts, bounded retries/savepoints may try the next eligible candidate; never silently downgrade VIP. No candidate success → rollback with no partial booking or allocation.
 
-## Concurrency guarantees
+Locking/isolation/savepoint choices (T-01–T-03) remain technical proposals. Closure/settings/deactivation writes need coordination with allocation so later transactions see current policy; closures preserve earlier bookings and alert owners. Rescheduling is all-or-nothing and retains ID/reference; see [lifecycle](booking-lifecycle.md#rescheduling). Safe actor/key scoping and replay design belong to issue #12, not an unscoped global key assumption.
 
-| Race                                        | Mechanism                                                                                                                                                                    | Outcome                                                                                                                                                                                               |
-| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Two bookings for the same resource and time | Exclusion constraint on `(resource_id, [starts_at, occupied_until))` for unreleased allocations. The second insert waits for the first transaction, then fails with `23P01`. | Exactly one commits; the other tries its next candidate or fails.                                                                                                                                     |
-| Multi-resource bookings                     | All allocations of a booking are inserted in one transaction, in resource-id order.                                                                                          | All-or-nothing; consistent order prevents most deadlocks. Deadlocks that still occur (`40P01`) are retried.                                                                                           |
-| Cancellation vs booking                     | Cancellation locks the booking row and releases allocations in one transaction.                                                                                              | A booking that waits on the unreleased row proceeds correctly after the cancellation commits or rolls back.                                                                                           |
-| Reschedule vs booking                       | Release + new allocation in one transaction.                                                                                                                                 | Either the reschedule or the competing booking gets the contested resource; the rescheduling booking never loses its original slot on failure.                                                        |
-| Blackout vs booking                         | Blackout creation takes `FOR UPDATE` on the restaurant row; bookings take `FOR KEY SHARE`.                                                                                   | Serialised: a blackout sees all bookings committed before it; later bookings see the blackout. Handling of bookings already inside the new blackout: [Q-09](../open-questions.md#business-questions). |
-| Resource deactivation vs booking            | Deactivation takes `FOR UPDATE` on the resource row; bookings take `FOR KEY SHARE` on candidate resources.                                                                   | Serialised.                                                                                                                                                                                           |
-| Settings change vs booking                  | Settings change takes `FOR UPDATE` on the restaurant row.                                                                                                                    | Serialised; the booking snapshots the settings it used.                                                                                                                                               |
-| Duplicate submissions (double click, retry) | Unique idempotency key on booking; fingerprint check.                                                                                                                        | One booking; retries return it.                                                                                                                                                                       |
-| System jobs vs user actions                 | Conditional updates (`WHERE status = …`) plus booking row locks.                                                                                                             | Completion, expiry, and owner overrides never overwrite each other silently.                                                                                                                          |
+## Future verification criteria
 
-`FOR KEY SHARE` is used for the restaurant row (instead of `FOR SHARE`) so ordinary
-profile edits (which take a weaker `FOR NO KEY UPDATE`) do not block bookings.
+These are **pending verification**, not tests written or run during policy reconciliation:
 
-## Timezone correctness checklist
+- Exact `lastBookingTime`, meal/buffer past closing, configurable lead-time/horizon/party limits.
+- Meal versus buffer-only closure overlap; resource closures; closure creation keeps existing bookings and alerts owner.
+- Entered combination capacity bounded by members; inactive/closed member excluded.
+- Preference/single/spare/priority order and deterministic ties; unavailable requested VIP never silently downgraded.
+- Buffer at 20:00/20:15; real PostgreSQL parallel bookings and multi-resource all-or-nothing.
+- Exact self-service deadline, explicit customer-request exceptions and admin authority.
+- Atomic reschedule (including party size), actor-scoped duplicate replay/mismatch, hold/contact/arrival lifecycle.
 
-| Concern               | Rule                                                                                                                                                      |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Opening hours         | Evaluated on the local weekday of the local date, in minutes since local midnight.                                                                        |
-| Slots                 | Generated in local wall time, then converted to instants.                                                                                                 |
-| Start/end             | Stored as instants; the timezone used is snapshotted on the booking.                                                                                      |
-| Cancellation deadline | Instant arithmetic on `startsAt`.                                                                                                                         |
-| Reminders             | Scheduled at `startsAt − 24h` and `startsAt − 2h` (instants). Bookings created inside a reminder window: [Q-42](../open-questions.md#business-questions). |
-| Blackouts             | Entered by the owner in local time, stored as instants.                                                                                                   |
-| "Opening now"         | Current instant converted to the restaurant's local weekday and minute.                                                                                   |
-| "Today" in the UI     | The restaurant's local date, not the viewer's.                                                                                                            |
-
-## Tests the engine must have (phase 6–7)
-
-- Slot generation: interval, multiple periods per day, lead time, horizon, blackouts, the closing-time rule, DST gap/overlap for a non-Vietnam timezone.
-- Buffer: the 18:00/20:00/20:15 example in both directions.
-- Ranking: each ranking factor in isolation, and deterministic tiebreak.
-- Combinations: allowed vs not allowed pairs; inactive member disables a combination.
-- Concurrency (real PostgreSQL, parallel transactions): N parallel requests for one resource → exactly one success; overlapping multi-resource requests; cancel vs book; reschedule vs book; blackout vs book; deactivation vs book; duplicate idempotency keys.
-- Rescheduling: success to overlapping time on the same resource; failure leaves the original booking and allocations unchanged.
-- Deadlines: just before / at / after the deadline.
+Future tests must derive expected behavior from accepted policy/contracts, not from the current implementation. Booking writes are absent, so existing read-path test success cannot establish write-path policy compliance.

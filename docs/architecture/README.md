@@ -1,7 +1,6 @@
 # Architecture
 
-Status: **proposed** (Phase 1). Nothing described here beyond the repository
-scaffold is implemented yet. Technology choices marked `T-xx` are pending in
+Status: mixed **implemented behavior** and **technical proposal**. Auth/session, restaurant/availability reads, PostgreSQL and Redis integration exist. Booking writes, owner operations, outbox/booking worker and the layered redesign below remain pending. Accepted product policy in [issue #4](https://github.com/mikenguyen1998/restaurant-booking-platform/issues/4) does not approve these technical choices. See [implementation status](../product/implementation-status.md). Technology choices marked `T-xx` are pending in
 [open-questions.md](../open-questions.md#technical-decisions).
 
 ## System context
@@ -27,18 +26,18 @@ flowchart LR
     WK --> MAIL[Email provider]
 ```
 
-| Component        | Responsibility                                                                                                                                                                                     |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Web (`apps/web`) | UI in Vietnamese and English; server-rendered public pages; calls the API only. Never talks to PostgreSQL, Redis, or Elasticsearch.                                                                |
-| API (`apps/api`) | All business rules, authorization, transactions. Writes domain changes and outbox events atomically.                                                                                               |
-| Worker           | Processes outbox events and scheduled jobs: notifications, reminders, search indexing, completion, expiry. Proposed as a second entry point of `apps/api` (T-08) so domain code is not duplicated. |
-| PostgreSQL       | Source of truth. Enforces the booking overlap guarantee with an exclusion constraint.                                                                                                              |
-| Redis            | Job queues (T-07), rate limiting, and caching where justified (Phase 13). Never a source of truth.                                                                                                 |
-| Elasticsearch    | Read model for discovery: keyword, filters, geo-distance, sorting. Rebuildable from PostgreSQL at any time.                                                                                        |
-| Object storage   | Restaurant photos. The API issues presigned upload URLs and stores object keys only.                                                                                                               |
-| Email provider   | Transactional email. Behind an interface; provider not chosen.                                                                                                                                     |
+| Component        | Responsibility                                                                                                                                                                                                                                                          |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Web (`apps/web`) | UI in Vietnamese and English; server-rendered public pages; calls the API only. Never talks to PostgreSQL, Redis, or Elasticsearch.                                                                                                                                     |
+| API (`apps/api`) | All business rules, authorization, transactions. Writes domain changes and outbox events atomically.                                                                                                                                                                    |
+| Worker           | Processes outbox events and scheduled jobs: notifications, reminders, search indexing, arrival-aware completion, hold/absence alerts; expiry reserved for future PENDING flows. Proposed as a second entry point of `apps/api` (T-08) so domain code is not duplicated. |
+| PostgreSQL       | Source of truth. Proposed enforcement of overlap via exclusion constraint; not yet in live migrations.                                                                                                                                                                  |
+| Redis            | Job queues (T-07), rate limiting, and caching where justified (Phase 13). Never a source of truth.                                                                                                                                                                      |
+| Elasticsearch    | Read model for discovery: keyword, filters, geo-distance, sorting. Rebuildable from PostgreSQL at any time.                                                                                                                                                             |
+| Object storage   | Restaurant photos. The API issues presigned upload URLs and stores object keys only.                                                                                                                                                                                    |
+| Email provider   | Transactional email. Behind an interface; provider not chosen.                                                                                                                                                                                                          |
 
-## Write path and side effects
+## Write path and side effects (technical proposal)
 
 ```mermaid
 sequenceDiagram
@@ -66,7 +65,7 @@ Rules:
 - Outbox processing is at-least-once; consumers are idempotent (e.g. delivery rows
   are unique per notification and channel).
 
-## Read paths
+## Read paths (target architecture)
 
 | Read                                     | Source                                                         |
 | ---------------------------------------- | -------------------------------------------------------------- |
@@ -81,7 +80,7 @@ running the availability engine on the top search hits (T-10).
 
 ## API internal layering
 
-Each API module follows the same layering. Dependencies point inwards only.
+The proposed target is the following layering; current modules still use controllers/services/repositories. Dependencies point inwards only.
 
 ```text
 modules/<context>/
@@ -111,25 +110,25 @@ module is first implemented. The mapping is:
 | `entities/`            | `domain/`                                                         |
 | `repositories/`        | `application/` (port) + `infrastructure/` (Prisma implementation) |
 
-## Module map
+## Module map (target ownership, current status)
 
-| Module            | Owns                                                                                                                             | Status           |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| `auth`            | registration, login, tokens, guards                                                                                              | scaffold         |
-| `users`           | profiles, user admin operations                                                                                                  | scaffold         |
-| `restaurants`     | onboarding, profile, location, photos, menu, taxonomy links, resources, combinations, opening hours, blackouts, booking settings | scaffold         |
-| `bookings`        | availability engine, allocation engine, booking lifecycle, jobs for completion/expiry                                            | scaffold         |
-| `reviews`         | reviews, replies, flags, moderation                                                                                              | scaffold         |
-| `collections`     | collections                                                                                                                      | scaffold         |
-| `notifications`   | notifications, deliveries, reminders, announcements                                                                              | scaffold         |
-| `admin`           | admin-only use cases that span modules (reports, analytics)                                                                      | scaffold         |
-| `favorites`       | favorites (separate concept from collections)                                                                                    | **proposed new** |
-| `search`          | Elasticsearch index mapping, indexing, search queries                                                                            | **proposed new** |
-| `recommendations` | rule-based recommender behind an interface                                                                                       | **proposed new** |
-| `audit`           | audit log writer (used by all modules) and reader (admin)                                                                        | **proposed new** |
-| `locations`       | countries, cities, geocoding interface                                                                                           | **proposed new** |
+| Module            | Owns                                                                                                                             | Status                                                                     |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `auth`            | registration, login, tokens, guards                                                                                              | session/auth implemented                                                   |
+| `users`           | current-user identity, profiles, user admin operations                                                                           | GET /me and user/auth repository implemented; profile/admin writes pending |
+| `restaurants`     | onboarding, profile, location, photos, menu, taxonomy links, resources, combinations, opening hours, blackouts, booking settings | public/availability reads implemented; writes pending                      |
+| `bookings`        | availability engine, allocation engine, booking lifecycle, jobs for completion/expiry                                            | pending implementation                                                     |
+| `reviews`         | reviews, replies, flags, moderation                                                                                              | pending implementation                                                     |
+| `collections`     | collections                                                                                                                      | pending implementation                                                     |
+| `notifications`   | notifications, deliveries, reminders, announcements                                                                              | pending implementation                                                     |
+| `admin`           | admin-only use cases that span modules (reports, analytics)                                                                      | pending implementation                                                     |
+| `favorites`       | favorites (separate concept from collections)                                                                                    | **proposed new**                                                           |
+| `search`          | Elasticsearch index mapping, indexing, search queries                                                                            | **proposed new**                                                           |
+| `recommendations` | rule-based recommender behind an interface                                                                                       | **proposed new**                                                           |
+| `audit`           | audit log writer (used by all modules) and reader (admin)                                                                        | **proposed new**                                                           |
+| `locations`       | countries, cities, geocoding interface                                                                                           | **proposed new**                                                           |
 
-Cross-module calls go through the other module's application services (exported
+Technical proposal: cross-module calls go through the other module's application services (exported
 Nest providers), never through its repositories or tables.
 
 ## Cross-cutting concerns
@@ -144,4 +143,4 @@ Nest providers), never through its repositories or tables.
 | Localisation    | UI strings in the web app (vi, en). Email templates per locale. Taxonomy labels stored per locale (T-21). Restaurant content: Q-31. |
 | Geocoding       | `Geocoder` interface with no provider; owners enter coordinates in phase 1 (T-18).                                                  |
 | Recommendations | `RecommendationService` interface; phase 1 implementation scores by rules.                                                          |
-| Payments        | Not implemented. Money fields and a `PENDING` state exist so a payment step can be added later.                                     |
+| Payments        | No online payment in v1; VIP fees shown/snapshotted and collected at restaurant. PENDING reserved for future flow.                  |

@@ -1,5 +1,7 @@
 # Restaurant lifecycle
 
+**Accepted policy (#4 q27–28):** customer requests restaurant opening and admin approves owner access; owner may manage multiple restaurants, each with one owner in v1. This is distinct from review/approval of an individual restaurant. Owner submission email verification remains unresolved (Q-04). Operational transitions below are target behavior; onboarding writes are not implemented.
+
 ## States
 
 | Status           | Meaning                                            | Public / searchable | Bookable |

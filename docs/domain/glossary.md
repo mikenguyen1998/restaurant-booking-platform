@@ -1,16 +1,15 @@
 # Domain glossary
 
-Terms used consistently across code, API, database, and UI. When a term here
-conflicts with another document, this glossary wins and the other document is fixed.
+Terms used consistently across code, API, database, and UI. Accepted decisions in [issue #4](https://github.com/mikenguyen1998/restaurant-booking-platform/issues/4) override conflicting older definitions. Storage/role representations are technical proposals; see [implementation status](../product/implementation-status.md).
 
 ## Actors and identity
 
 | Term                 | Definition                                                                                                                                 |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **User**             | A registered account. Has exactly one role in the current proposal (see [Q-01](../open-questions.md#business-questions)).                  |
-| **Customer**         | A user with role `CUSTOMER`.                                                                                                               |
+| **User**             | A registered account. Owner and customer capabilities coexist on the same account; concrete role model pending.                            |
+| **Customer**         | An account using customer capabilities, including an owner booking as customer.                                                            |
 | **Guest**            | An unauthenticated person who creates a booking by supplying contact details. A guest is not a user and has no account or management link. |
-| **Restaurant Owner** | A user with role `RESTAURANT_OWNER`. The single owner/operator account of a restaurant.                                                    |
+| **Restaurant Owner** | An account with approved owner access. One owner per restaurant in v1; that owner may manage multiple restaurants.                         |
 | **Admin**            | A user with role `ADMIN`.                                                                                                                  |
 | **System**           | Non-human actor: scheduled jobs and background workers.                                                                                    |
 | **Actor**            | Whoever performs an action (user, guest, or system). Recorded on booking events and audit logs.                                            |
@@ -44,27 +43,27 @@ conflicts with another document, this glossary wins and the other document is fi
 
 ## Reservation model
 
-| Term                    | Definition                                                                                                                                              |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Resource**            | A bookable unit of a restaurant with a type (`TABLE` or `VIP_ROOM`), capacity, priority, active flag, and optional fee. Customers never pick resources. |
-| **Resource type**       | `TABLE` or `VIP_ROOM`.                                                                                                                                  |
-| **Capacity**            | The maximum party size a resource can seat.                                                                                                             |
-| **Priority**            | Restaurant-defined ordering used by the allocation engine when several candidates fit.                                                                  |
-| **Combination**         | A restaurant-defined set of two or more resources that may be allocated together to one booking.                                                        |
-| **Candidate**           | A single resource or a combination that could serve a booking request.                                                                                  |
-| **Opening period**      | A weekly wall-clock interval on one weekday, e.g. Monday 11:00–14:00. A weekday may have several. No overnight periods.                                 |
-| **Blackout**            | A restaurant-wide closure period during which no booking may take place.                                                                                |
-| **Booking settings**    | Per-restaurant configuration: slot interval, booking duration, buffer, cancellation/reschedule deadline, allocation preferences.                        |
-| **Slot**                | A permitted booking start time generated from an opening period and the slot interval (e.g. 18:00, 18:30, ...).                                         |
-| **Slot interval**       | Minutes between consecutive slots.                                                                                                                      |
-| **Booking duration**    | Length of the reservation (default 120 minutes).                                                                                                        |
-| **Buffer**              | Cleanup time after a booking during which its resources stay unavailable.                                                                               |
-| **Occupied window**     | `[start, end + buffer)`: the interval during which a booking blocks its resources.                                                                      |
-| **Availability**        | The set of slots on a date for which at least one candidate is free for a party size. Advisory: only the booking transaction is authoritative.          |
-| **Allocation**          | The assignment of one resource to one booking for its occupied window. A booking has one allocation per resource it holds.                              |
-| **Released allocation** | An allocation that no longer blocks its resource (booking cancelled, expired, or rescheduled away). Kept for history.                                   |
-| **Allocation engine**   | Backend component that selects the candidate for a booking and writes allocations transactionally.                                                      |
-| **Preference**          | A customer's wish that influences allocation, e.g. VIP/private room. Not a guarantee.                                                                   |
+| Term                    | Definition                                                                                                                                                                                |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Resource**            | A bookable unit of a restaurant with a type (`TABLE` or `VIP_ROOM`), capacity, priority, active flag, and optional fee. Customers never pick resources.                                   |
+| **Resource type**       | `TABLE` or `VIP_ROOM`.                                                                                                                                                                    |
+| **Capacity**            | The maximum party size a resource can seat.                                                                                                                                               |
+| **Priority**            | Restaurant-defined ordering used by the allocation engine when several candidates fit.                                                                                                    |
+| **Combination**         | A restaurant-defined set of two or more resources that may be allocated together to one booking.                                                                                          |
+| **Candidate**           | Single resource or explicit combination; owner-entered combination capacity bounded by member sum.                                                                                        |
+| **Opening period**      | A weekly wall-clock interval on one weekday, e.g. Monday 11:00–14:00. A weekday may have several. No overnight periods.                                                                   |
+| **Blackout**            | Restaurant-wide or resource time-bounded closure; meal overlap blocks new allocations, buffer alone does not; existing bookings retained and owner alerted.                               |
+| **Booking settings**    | Restaurant settings defined in [availability policy](availability-and-allocation.md#time-and-settings), including independent lastBookingTime and configurable lead/horizon/party limits. |
+| **Slot**                | A permitted booking start time generated from an opening period and the slot interval (e.g. 18:00, 18:30, ...).                                                                           |
+| **Slot interval**       | Minutes between consecutive slots.                                                                                                                                                        |
+| **Booking duration**    | Length of the reservation (default 120 minutes).                                                                                                                                          |
+| **Buffer**              | Cleanup time after a booking during which its resources stay unavailable.                                                                                                                 |
+| **Occupied window**     | `[start, end + buffer)`: the interval during which a booking blocks its resources.                                                                                                        |
+| **Availability**        | The set of slots on a date for which at least one candidate is free for a party size. Advisory: only the booking transaction is authoritative.                                            |
+| **Allocation**          | The assignment of one resource to one booking for its occupied window. A booking has one allocation per resource it holds.                                                                |
+| **Released allocation** | An allocation that no longer blocks its resource (booking cancelled, expired, or rescheduled away). Kept for history; approved unreachable NO_SHOW release is included.                   |
+| **Allocation engine**   | Backend component that selects the candidate for a booking and writes allocations transactionally.                                                                                        |
+| **Preference**          | A customer's wish that influences allocation, e.g. VIP/private room. Requested VIP never silently downgrades; regular seating needs consent.                                              |
 
 ## Booking
 
@@ -77,11 +76,11 @@ conflicts with another document, this glossary wins and the other document is fi
 | **Guest booking**         | Booking created without an account; holds contact details only.                                                           |
 | **Booking status**        | `PENDING`, `CONFIRMED`, `CANCELLED`, `COMPLETED`, `NO_SHOW`, `EXPIRED`. See [booking lifecycle](booking-lifecycle.md).    |
 | **Cancellation deadline** | Instant `start − deadline minutes` after which self-service cancellation/rescheduling is closed. Default 120 minutes.     |
-| **Rescheduling**          | Moving a confirmed booking to a new slot atomically.                                                                      |
-| **No-show suggestion**    | A system flag that a booking may be a no-show. It does not change status.                                                 |
-| **Completion**            | Transition to `COMPLETED` after the end time.                                                                             |
-| **Override**              | Owner correction of a system-set outcome (`COMPLETED` ↔ `NO_SHOW`).                                                       |
-| **Idempotency key**       | Client-generated unique key making booking creation safe to retry.                                                        |
+| **Rescheduling**          | Changing date/time and party size atomically, keeping ID/reference; no fixed count limit within deadline, rate limiting.  |
+| **No-show suggestion**    | Owner alert for unresolved absence; never an automatic NO_SHOW/cancel/release.                                            |
+| **Completion**            | Automatic transition only for CONFIRMED with recorded arrival and now >= endsAt.                                          |
+| **Override**              | COMPLETED ↔ NO_SHOW correction: owner within 24h with reason/audit, admin thereafter; anchor unresolved.                  |
+| **Idempotency key**       | Actor-scoped retry intent: same key/fingerprint replays; changed fingerprint conflicts. Secure guest scope pending #12.   |
 | **Booking event**         | Immutable history record of a booking change (created, confirmed, rescheduled, cancelled, ...).                           |
 
 ## Engagement
@@ -100,12 +99,12 @@ conflicts with another document, this glossary wins and the other document is fi
 
 ## Money
 
-| Term                    | Definition                                                                               |
-| ----------------------- | ---------------------------------------------------------------------------------------- |
-| **Money**               | An amount plus an ISO 4217 currency code. Never a float.                                 |
-| **Minor units**         | Integer amount in the currency's smallest unit (VND: 1 đồng, USD: 1 cent).               |
-| **Restaurant currency** | Currency in which a restaurant's prices and fees are expressed.                          |
-| **Resource fee**        | Optional reservation fee on a resource (typically a VIP room). Not collected in phase 1. |
+| Term                    | Definition                                                                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Money**               | An amount plus an ISO 4217 currency code. Never a float.                                                                                    |
+| **Minor units**         | Integer amount in the currency's smallest unit (VND: 1 đồng, USD: 1 cent).                                                                  |
+| **Restaurant currency** | Currency in which a restaurant's prices and fees are expressed.                                                                             |
+| **Resource fee**        | Optional reservation fee on a resource (typically a VIP room). Shown explicitly and snapshotted; collected at restaurant, not online in v1. |
 
 ## Platform
 
