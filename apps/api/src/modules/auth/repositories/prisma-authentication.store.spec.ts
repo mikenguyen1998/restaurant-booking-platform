@@ -40,9 +40,18 @@ describe.skipIf(!url)(
             "MfaAuthenticator", "MfaRecoveryCode", "MfaFailure"
           LIMIT 0
         `;
-      } catch {
+      } catch (error) {
+        const code =
+          typeof error === 'object' && error !== null && 'code' in error
+            ? String(error.code)
+            : 'unknown';
+        if (code === 'EPERM' || code === 'EACCES') {
+          throw new Error(
+            `Auth test database connection is blocked by execution permissions (${code}). Run pnpm test in a terminal with localhost access, or approve running it outside the agent sandbox.`,
+          );
+        }
         throw new Error(
-          'Auth test database is unavailable or missing migrations. Start PostgreSQL with docker compose up -d postgres, then prepare the dedicated TEST_DATABASE_URL database. See apps/api/README.md#tests.',
+          `Auth test database is unavailable or missing migrations (${code}). Start PostgreSQL with docker compose up -d postgres, then prepare the dedicated TEST_DATABASE_URL database. See apps/api/README.md#tests.`,
         );
       }
     });

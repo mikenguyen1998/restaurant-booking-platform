@@ -12,6 +12,35 @@ concurrency:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: restaurant_platform_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d restaurant_platform_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/restaurant_platform_test
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/restaurant_platform_test
+      REDIS_URL: redis://localhost:6379
     steps:
       - uses: actions/checkout@v7
 
@@ -30,6 +59,12 @@ jobs:
 
       - name: Lint
         run: pnpm lint
+
+      - name: Test
+        run: pnpm test
+
+      - name: Format check
+        run: pnpm format:check
 
       - name: Build
         run: pnpm build
