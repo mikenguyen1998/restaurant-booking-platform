@@ -60,6 +60,11 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Migrate test database
+        run: pnpm --filter @restaurant-platform/database db:migrate:deploy
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+
       - name: Test
         run: pnpm test
 
