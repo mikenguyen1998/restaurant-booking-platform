@@ -1,7 +1,6 @@
 # Các bước tiếp theo
 
-Đối chiếu tài liệu và code ngày 2026-10-14. Đây là kế hoạch thực hiện,
-không phải xác nhận các quyết định nghiệp vụ còn mở.
+Đối chiếu ngày 2026-10-15 theo [policy đã duyệt ở issue #4](https://github.com/mikenguyen1998/restaurant-booking-platform/issues/4). Đây là kế hoạch; phần đồng bộ tài liệu của issue #3 không triển khai #6. Xem [implementation status](product/implementation-status.md) để phân biệt source hiện tại với policy.
 
 ## Mục tiêu
 
@@ -33,14 +32,9 @@ booking được phân bổ thành công vào `CONFIRMED` ngay trong transaction
 
 ## Thứ tự thực hiện
 
-1. **Chốt baseline trước booking.** Ghi quyết định cho closing/buffer (Q-08),
-   giới hạn đặt chỗ (Q-11), combination capacity/ranking/VIP (Q-13–16), thông
-   tin guest (Q-18), deadline và reschedule (Q-19–23, Q-35), snapshots (Q-40).
-   Phân biệt quy tắc đã chốt với lựa chọn tạm trong code. Đồng bộ tài liệu API,
-   schema và ADR; không áp SQL đề xuất trực tiếp vì tên bảng/cột khác schema thật.
+1. **Baseline đã duyệt; refinement còn pending.** Áp #4 làm chuẩn, không mở lại quyết định đã chốt. Giữ pending mốc correction 24h, release khi COMPLETED sớm và technical designs cho arrival/contact/hold, resource closures, snapshots, notification rescheduling và secure guest replay (#12). Các công việc implementation là follow-up, không nằm trong lượt policy reconciliation này.
 2. **Hoàn thiện authorization và availability.** Role/policy checks phải kiểm
-   tra cả ownership trong service. Áp verified-email cho luồng customer theo
-   chính sách; giữ luồng guest riêng đúng quyền. Review tính nguyên tử của tăng
+   tra cả ownership trong service. Áp verified-email trước booking cho authenticated customer; giữ luồng guest riêng đúng quyền. Review tính nguyên tử của tăng
    cache version (`get` rồi `set` hiện tại), cache khi slot thành quá khứ và
    khi restaurant đổi trạng thái. Nối invalidation sau commit của booking và
    thay đổi resources/opening hours/closures/settings.
@@ -59,8 +53,8 @@ booking được phân bổ thành công vào `CONFIRMED` ngay trong transaction
 5. **Booking management.** My bookings, hủy theo deadline, reschedule atomic
    (thất bại giữ nguyên booking cũ), owner xử lý guest và no-show, admin xử lý
    hủy từ phía nhà hàng. Owner không có bước xác nhận booking online và không
-   được trực tiếp hủy booking confirmed của customer.
-6. **Owner/admin và web MVP.** Onboarding, resources/settings/closures, admin
+   được tự ý hủy authenticated confirmed booking; được xử lý yêu cầu rõ ràng của khách với reason/contact evidence/audit, kể cả sau deadline.
+6. **Owner/admin và web MVP.** Customer yêu cầu owner access và admin duyệt; owner giữ customer capabilities trên cùng account. Onboarding, resources/settings/closures, admin
    approve/reject/suspend. Web: API client/session/CSRF, discovery/detail,
    availability picker, booking confirmation, auth và My bookings; sau đó owner
    dashboard. Kiểm chứng toàn bộ luồng bằng dữ liệu seed.

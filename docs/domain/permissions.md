@@ -4,40 +4,46 @@ Legend: ✅ allowed · **own** only on the actor's own resources · **own R** on
 restaurants the owner owns · ❌ not allowed · `Q-xx` pending a business decision ·
 — not applicable.
 
-Authorization is enforced in application services (not only controllers), so the
-same rules apply to every entry point, including background jobs.
+**Accepted policy:** [issue #4](https://github.com/mikenguyen1998/restaurant-booking-platform/issues/4). **Pending implementation:** booking authorization and owner onboarding; existing auth sessions do not establish these permissions. Enforcement in application services as well as controllers is a **technical proposal**.
+
+Owner uses customer capabilities on the same account (own bookings, reviews, favorites, collections and recommendations) as well as operating owned restaurants. Ownership must be checked; one owner can manage multiple restaurants, each with one owner in v1. Customer requests restaurant opening; admin approves owner access. Email verification before owner submission and admin account provisioning remain unresolved (Q-03/Q-04).
 
 ## Discovery
 
-| Capability                                                   | Guest | Customer | Owner  | Admin |
-| ------------------------------------------------------------ | ----- | -------- | ------ | ----- |
-| Search, filter, list approved restaurants                    | ✅    | ✅       | ✅     | ✅    |
-| View approved restaurant details, photos, menu, reviews, map | ✅    | ✅       | ✅     | ✅    |
-| View non-approved restaurant                                 | ❌    | ❌       | own R  | ✅    |
-| Check availability                                           | ✅    | ✅       | ✅     | ✅    |
-| Personalised recommendations                                 | ❌    | ✅       | `Q-01` | ❌    |
+| Capability                                                   | Guest | Customer | Owner                     | Admin |
+| ------------------------------------------------------------ | ----- | -------- | ------------------------- | ----- |
+| Search, filter, list approved restaurants                    | ✅    | ✅       | ✅                        | ✅    |
+| View approved restaurant details, photos, menu, reviews, map | ✅    | ✅       | ✅                        | ✅    |
+| View non-approved restaurant                                 | ❌    | ❌       | own R                     | ✅    |
+| Check availability                                           | ✅    | ✅       | ✅                        | ✅    |
+| Personalised recommendations                                 | ❌    | ✅       | own (customer capability) | ❌    |
 
 ## Booking
 
-| Capability                                   | Guest                     | Customer             | Owner                    | Admin                             |
-| -------------------------------------------- | ------------------------- | -------------------- | ------------------------ | --------------------------------- |
-| Create online booking                        | ✅ (with contact details) | ✅                   | `Q-01`                   | not in requirements (proposal ❌) |
-| Create manual booking                        | ❌                        | ❌                   | own R                    | ❌                                |
-| View booking                                 | ❌ (no management link)   | own                  | own R                    | ✅                                |
-| Booking history                              | ❌                        | own                  | own R (reservation list) | ✅                                |
-| Cancel authenticated `CONFIRMED` booking     | —                         | own, before deadline | ❌                       | ✅ (`Q-23`)                       |
-| Reschedule authenticated `CONFIRMED` booking | —                         | own, before deadline | ❌ (`Q-21`)              | ✅ (`Q-23`)                       |
-| Cancel / reschedule guest booking            | ❌                        | —                    | own R (deadline: `Q-19`) | ✅                                |
-| Cancel / reschedule manual booking           | —                         | —                    | `Q-21`                   | ✅                                |
-| Mark no-show                                 | ❌                        | ❌                   | own R                    | `Q-24`                            |
-| Override completion / no-show                | ❌                        | ❌                   | own R (window: `Q-25`)   | `Q-25`                            |
-| See guest contact details                    | —                         | —                    | own R                    | ✅                                |
+Details and evidence requirements are maintained in [booking lifecycle](booking-lifecycle.md#cancellation-and-rescheduling).
+
+| Capability                                                               | Guest                        | Customer                | Owner                                                                  | Admin                                            |
+| ------------------------------------------------------------------------ | ---------------------------- | ----------------------- | ---------------------------------------------------------------------- | ------------------------------------------------ |
+| Create online booking                                                    | name + phone; email optional | verified email required | same account as verified customer                                      | not approved by #4; outside stated requirements  |
+| Create manual booking                                                    | ❌                           | ❌                      | own R                                                                  | ❌                                               |
+| View/history                                                             | no self-service link         | own                     | own customer bookings + own R operations                               | ✅                                               |
+| Self-service cancel/reschedule                                           | ❌                           | own, now <= deadline    | own customer booking under same rule                                   | admin authority below                            |
+| Handle explicit customer-requested change after deadline                 | ❌                           | contact restaurant      | own R; reason/contact evidence/audit, including authenticated bookings | ✅; reason/audit/notification                    |
+| Initiate restaurant-side cancellation of authenticated CONFIRMED booking | ❌                           | —                       | ❌; request admin handling                                             | ✅; reason/audit/customer notification           |
+| Handle guest cancel/reschedule requests                                  | ❌                           | —                       | own R; explicit request/evidence; after-deadline exception allowed     | ✅; reason/audit/notification                    |
+| Cancel/reschedule manual booking                                         | —                            | —                       | own R; reason and audited action                                       | ✅; reason/audit/notification                    |
+| Record arrival/contact/extend hold                                       | ❌                           | —                       | own R; actor/time/outcome for contact                                  | additional operational scope not specified by #4 |
+| Mark NO_SHOW/release for unreachable guest                               | ❌                           | ❌                      | own R; absent, failed contact, now >= effective holdUntil + 15 min     | additional operational scope not specified by #4 |
+| Cancel immediately on explicit non-attendance                            | ❌                           | communicates request    | own R; reason/contact result/actor/time                                | admin cancellation authority                     |
+| Correct COMPLETED ↔ NO_SHOW                                              | ❌                           | ❌                      | own R within 24h; reason/audit; reference timestamp unresolved         | handles after window; reason/audit               |
+| Admin cancel/reschedule                                                  | —                            | —                       | —                                                                      | any deadline; reason/audit/customer notification |
+| See guest contacts                                                       | —                            | —                       | own R                                                                  | ✅                                               |
 
 ## Restaurant onboarding and configuration
 
 | Capability                                                | Guest | Customer | Owner                     | Admin                  |
 | --------------------------------------------------------- | ----- | -------- | ------------------------- | ---------------------- |
-| Create restaurant draft                                   | ❌    | ❌       | ✅ (count: `Q-02`)        | ❌                     |
+| Create restaurant draft                                   | ❌    | ❌       | ✅ (multiple restaurants) | ❌                     |
 | Edit profile, location, photos, menu, amenities, cuisines | ❌    | ❌       | own R (re-review: `Q-05`) | `Q-05`                 |
 | Manage resources, combinations                            | ❌    | ❌       | own R                     | ❌                     |
 | Manage opening hours, blackouts, booking settings         | ❌    | ❌       | own R                     | ❌                     |
@@ -49,32 +55,32 @@ same rules apply to every entry point, including background jobs.
 
 ## Reviews
 
-| Capability                           | Guest | Customer                      | Owner  | Admin |
-| ------------------------------------ | ----- | ----------------------------- | ------ | ----- |
-| Create review                        | ❌    | own `COMPLETED` booking, once | ❌     | ❌    |
-| Edit review                          | ❌    | own, within edit window       | ❌     | ❌    |
-| Reply to review                      | ❌    | ❌                            | own R  | ❌    |
-| Flag review                          | ❌    | `Q-29`                        | `Q-29` | —     |
-| Hide / restore review, resolve flags | ❌    | ❌                            | ❌     | ✅    |
+| Capability                           | Guest | Customer                      | Owner                   | Admin |
+| ------------------------------------ | ----- | ----------------------------- | ----------------------- | ----- |
+| Create review                        | ❌    | own `COMPLETED` booking, once | own customer capability | ❌    |
+| Edit review                          | ❌    | own, within edit window       | own customer capability | ❌    |
+| Reply to review                      | ❌    | ❌                            | own R                   | ❌    |
+| Flag review                          | ❌    | `Q-29`                        | `Q-29`                  | —     |
+| Hide / restore review, resolve flags | ❌    | ❌                            | ❌                      | ✅    |
 
 ## Engagement
 
-| Capability                        | Guest | Customer | Owner  | Admin                 |
-| --------------------------------- | ----- | -------- | ------ | --------------------- |
-| Favorite / unfavorite             | ❌    | own      | `Q-01` | ❌                    |
-| Create / edit / delete collection | ❌    | own      | `Q-01` | ❌                    |
-| View public collection            | ✅    | ✅       | ✅     | ✅                    |
-| View private collection           | ❌    | own      | ❌     | `Q-43` (proposal: ❌) |
+| Capability                        | Guest | Customer | Owner                     | Admin                 |
+| --------------------------------- | ----- | -------- | ------------------------- | --------------------- |
+| Favorite / unfavorite             | ❌    | own      | own (customer capability) | ❌                    |
+| Create / edit / delete collection | ❌    | own      | own (customer capability) | ❌                    |
+| View public collection            | ✅    | ✅       | ✅                        | ✅                    |
+| View private collection           | ❌    | own      | own customer capability   | `Q-43` (proposal: ❌) |
 
 ## Account and notifications
 
-| Capability                           | Guest                   | Customer    | Owner  | Admin                 |
-| ------------------------------------ | ----------------------- | ----------- | ------ | --------------------- |
-| Register                             | ✅ (as customer)        | —           | `Q-03` | ❌ (created by admin) |
-| Edit own profile, preferred language | —                       | own         | own    | own                   |
-| In-app notifications                 | ❌                      | own         | own    | own                   |
-| Email notifications                  | booking emails (`Q-18`) | ✅ (`Q-38`) | ✅     | ✅                    |
-| Manage users (status, role)          | ❌                      | ❌          | ❌     | ✅                    |
+| Capability                           | Guest                            | Customer                   | Owner                          | Admin                                |
+| ------------------------------------ | -------------------------------- | -------------------------- | ------------------------------ | ------------------------------------ |
+| Register                             | ✅ (as customer)                 | —                          | customer requests owner access | admin provisioning unresolved (Q-03) |
+| Edit own profile, preferred language | —                                | own                        | own                            | own                                  |
+| In-app notifications                 | ❌                               | own                        | own                            | own                                  |
+| Email notifications                  | booking emails if email supplied | ✅ (reminder-only opt-out) | ✅                             | ✅                                   |
+| Manage users (status, role)          | ❌                               | ❌                         | ❌                             | ✅                                   |
 
 ## Admin
 
@@ -85,11 +91,11 @@ same rules apply to every entry point, including background jobs.
 
 ## System actor
 
-| Capability                                            | Allowed            |
-| ----------------------------------------------------- | ------------------ |
-| Complete bookings after end time                      | ✅                 |
-| Expire `PENDING` bookings                             | ✅                 |
-| Suggest no-show                                       | ✅ (basis: `Q-24`) |
-| Send notifications and reminders                      | ✅                 |
-| Update search index                                   | ✅                 |
-| Change restaurant status, cancel `CONFIRMED` bookings | ❌                 |
+| Capability                                                  | Allowed                                                            |
+| ----------------------------------------------------------- | ------------------------------------------------------------------ |
+| Complete CONFIRMED bookings with arrival and end reached    | ✅                                                                 |
+| Expire `PENDING` bookings (future flow; technical proposal) | ✅                                                                 |
+| Late-arrival/absence alerts                                 | Alert owner at effective hold; no automatic NO_SHOW/cancel/release |
+| Send notifications and reminders                            | ✅                                                                 |
+| Update search index                                         | ✅                                                                 |
+| Change restaurant status, cancel `CONFIRMED` bookings       | ❌                                                                 |

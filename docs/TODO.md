@@ -1,6 +1,6 @@
 # TODO — Remaining work with guides
 
-Your personal checklist for finishing the project. Tick boxes as you go (`[ ]` → `[x]`).
+Implementation checklist. Accepted booking policy is [issue #4](https://github.com/mikenguyen1998/restaurant-booking-platform/issues/4); checked source work below is not a claim of policy compliance. See [implementation gaps](product/implementation-status.md). Tick boxes as you go (`[ ]` → `[x]`).
 Each item has a link to read if you get stuck. 📘 = project doc in this repo, 🌐 = external guide.
 
 Recommended order: **finish 3 + 4 → 5 (including tests in CI) → 6 → 7 → 8 → 9 → 10**;
@@ -15,7 +15,7 @@ Read first: 📘 [availability-and-allocation.md](domain/availability-and-alloca
 
 - [x] Rewrite the placeholder query in `apps/api/src/modules/restaurants/services/availability.service.ts`
   - 🌐 [Prisma — relation queries (include/select)](https://www.prisma.io/docs/orm/prisma-client/queries/relation-queries)
-- [x] Generate slots from opening hours + `slotIntervalMinutes`
+- [x] Existing slot generation from opening hours/interval requires meal end <= close (implemented behavior; accepted lastBookingTime pending)
   - 🌐 [Luxon — date/time library](https://moment.github.io/luxon/#/) (intervals, adding minutes)
 - [x] Move all Prisma queries into `RestaurantsRepository` (Controller → Service → Repository)
 - [x] Exclude closures and past times, using the restaurant's timezone
@@ -26,11 +26,11 @@ Read first: 📘 [availability-and-allocation.md](domain/availability-and-alloca
 - [x] Cache the slot-list / closed-day responses too (one `result`, one `cache.set`)
 - [x] Skip tables already used by active bookings (`BookingResource` intervals + buffer)
   - 🌐 [Prisma — filtering & comparison operators (lt/gt)](https://www.prisma.io/docs/orm/prisma-client/queries/filtering-and-sorting)
-- [x] Allocation: best-fit table by capacity/priority, then table combinations
+- [x] Existing ranking/summed-member combinations (implemented behavior; owner-entered capacity and VIP policy pending)
   - [x] Repository: active `ResourceCombinationRule`s with their resources
   - [x] Pure function `rankCandidates(...)` (single before combination → best fit → priority → fewer tables → lowest id)
   - 📘 [availability-and-allocation.md](domain/availability-and-allocation.md) (rules are defined there)
-- [x] Unit tests for slot generation & allocation
+- [x] Existing unit tests for current helpers (not verification of accepted #4 policy)
   - 🌐 [Vitest — getting started](https://vitest.dev/guide/)
   - 🌐 [NestJS — testing](https://docs.nestjs.com/fundamentals/testing)
   - 🌐 [NestJS + Vitest (SWC recipe)](https://docs.nestjs.com/recipes/swc#vitest)
@@ -89,11 +89,11 @@ Read first: 📘 [booking-lifecycle.md](domain/booking-lifecycle.md) · 📘 [in
     - 🌐 [Postgres — `SELECT … FOR UPDATE`](https://www.postgresql.org/docs/current/sql-select.html#SQL-FOR-UPDATE-SHARE)
     - 🌐 [Prisma — raw SQL queries](https://www.prisma.io/docs/orm/prisma-client/using-raw-sql/raw-queries)
   - Background: 🌐 [Postgres — transaction isolation](https://www.postgresql.org/docs/current/transaction-iso.html)
-- [ ] Idempotency key for create (same key → same booking, no duplicate)
+- [ ] Actor/key/intent replay; changed fingerprint conflicts without editing; secure guest scope/private replay design in #12
   - 🌐 [Stripe — idempotent requests (the classic design)](https://docs.stripe.com/api/idempotent_requests)
-- [ ] Status transitions: PENDING → CONFIRMED / CANCELLED / COMPLETED / NO_SHOW / EXPIRED
+- [ ] V1 create CONFIRMED directly; accepted arrival/contact/hold, cancellation/reschedule and correction lifecycle. PENDING/EXPIRED reserved for future flow
   - 📘 [booking-lifecycle.md](domain/booking-lifecycle.md)
-- [ ] Cancellation deadline rule
+- [ ] Inclusive self-service deadline and audited customer-requested owner/admin exceptions
 - [ ] `bookingNumber` generator (short, human-readable, unique)
 - [ ] Concurrency test: N parallel requests → exactly 1 succeeds
   - 🌐 [NestJS — end-to-end testing](https://docs.nestjs.com/fundamentals/testing#end-to-end-testing)
@@ -142,7 +142,7 @@ Read first: 📘 [restaurant-lifecycle.md](domain/restaurant-lifecycle.md) · �
 - [ ] BullMQ on Redis
   - 🌐 [NestJS — queues](https://docs.nestjs.com/techniques/queues)
   - 🌐 [BullMQ docs](https://docs.bullmq.io/)
-- [ ] Expire unconfirmed PENDING bookings (delayed job)
+- [ ] Arrival-aware completion and hold/absence reminders; PENDING expiry is a future-flow technical proposal
   - 🌐 [BullMQ — delayed jobs](https://docs.bullmq.io/guide/jobs/delayed)
 - [ ] Email confirmation / reminder
   - 🌐 [Resend (email API, free tier)](https://resend.com/docs)
@@ -170,7 +170,7 @@ Read first: 📘 [restaurant-lifecycle.md](domain/restaurant-lifecycle.md) · �
   - 🌐 [Railway docs](https://docs.railway.com/)
   - 🌐 [Fly.io — JavaScript apps](https://fly.io/docs/js/)
   - 🌐 [Render docs](https://render.com/docs)
-- [ ] Update README (still says "Phase 1"): architecture diagram, screenshots, live demo link
+- [ ] Complete README: architecture diagram, screenshots, live demo link
   - 🌐 [GitHub — Mermaid diagrams in Markdown](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams)
 - [ ] Write-up: how double booking is prevented
 - [ ] Add to mikenguyen.site with repo link

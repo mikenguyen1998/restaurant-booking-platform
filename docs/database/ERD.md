@@ -1,6 +1,6 @@
 # Entity Relationship Diagram
 
-Generated from `packages/database/prisma/schema.prisma`. Only keys and the most important columns are shown.
+Live-schema overview from `packages/database/prisma/schema.prisma`. Only keys and selected columns are shown. **Implemented representation**, not evidence of accepted booking policy implementation. Missing #4 fields/flows are tracked in [implementation status](../product/implementation-status.md); the diagram does not invent them.
 GitHub renders this diagram automatically; in VS Code use a Mermaid preview extension.
 
 ```mermaid

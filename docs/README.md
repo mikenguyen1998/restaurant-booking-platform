@@ -11,10 +11,10 @@
 | [domain/invariants.md](domain/invariants.md)                                   | Invariants and where each is enforced; audited actions            |
 | [domain/permissions.md](domain/permissions.md)                                 | Permission matrix                                                 |
 | [architecture/](architecture/README.md)                                        | System components, write/read paths, module layering              |
-| [database/](database/README.md)                                                | Proposed Prisma schema and raw-SQL constraints                    |
+| [database/](database/README.md)                                                | Live schema versus historical proposals and pending constraints   |
 | [api/](api/README.md)                                                          | HTTP API conventions and endpoints (from Phase 3)                 |
 | [decisions/](decisions/README.md)                                              | Architecture Decision Records                                     |
-| [open-questions.md](open-questions.md)                                         | Unresolved business questions and pending technical decisions     |
+| [open-questions.md](open-questions.md)                                         | Stable Q-ID resolution mapping and pending decisions              |
 
 Current implementation includes the database, public restaurant API, session auth
 and most of the availability read path. Booking writes and the product web UI are
@@ -23,3 +23,7 @@ some older status statements have not been updated.
 
 See [NEXT-STEPS.md](NEXT-STEPS.md) for the implementation order and
 `/review-and-test` workflow; [TODO.md](TODO.md) for the detailed checklist.
+
+## Booking policy reconciliation
+
+[Issue #4](https://github.com/mikenguyen1998/restaurant-booking-platform/issues/4) is the accepted booking baseline. [Open questions](open-questions.md) preserves Q IDs and maps issue topics to resolution status. Domain documents own detailed policy; [implementation status](product/implementation-status.md) distinguishes current source from pending implementation and unresolved/technical work. Policy acceptance and documentation reconciliation do not establish implemented booking writes.
