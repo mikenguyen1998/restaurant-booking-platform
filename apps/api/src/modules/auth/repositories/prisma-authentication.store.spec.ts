@@ -2,7 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { AuthenticationStorage } from '@nestjs/authentication';
 import { authenticationStoreContract } from '@nestjs/authentication/testing';
 import { PrismaClient } from '@restaurant-platform/database';
-import { afterAll, describe, it } from 'vitest';
+import { afterAll, beforeAll, describe, it } from 'vitest';
 import type { PrismaService } from '../../../database/prisma.service.js';
 import { PrismaAuthenticationStore } from './prisma-authentication.store.js';
 
@@ -24,6 +24,28 @@ describe.skipIf(!url)(
     }) as unknown as PrismaService;
 
     afterAll(() => prisma.$disconnect());
+
+    beforeAll(async () => {
+      const databaseName = new URL(url!).pathname.slice(1);
+      if (!databaseName.endsWith('_test')) {
+        throw new Error(
+          'TEST_DATABASE_URL must point to a disposable database whose name ends in _test; this suite truncates auth tables.',
+        );
+      }
+
+      try {
+        // Check connectivity and schema once, before any destructive cleanup.
+        await prisma.$queryRaw`
+          SELECT 1 FROM "Session", "RefreshToken", "EmailToken",
+            "MfaAuthenticator", "MfaRecoveryCode", "MfaFailure"
+          LIMIT 0
+        `;
+      } catch {
+        throw new Error(
+          'Auth test database is unavailable or missing migrations. Start PostgreSQL with docker compose up -d postgres, then prepare the dedicated TEST_DATABASE_URL database. See apps/api/README.md#tests.',
+        );
+      }
+    });
 
     async function emptyStore() {
       await prisma.$executeRawUnsafe(

@@ -17,7 +17,8 @@ git status --short
 git diff            # plus `git diff --cached` if something is staged
 ```
 
-Read every changed/new `.ts` file in full (not just the hunks). Skip
+Read every changed/new `.ts` or `.tsx` file in full (not just the hunks), including
+untracked files. Read applicable `AGENTS.md` / `CLAUDE.md` and existing tests. Skip
 `docs/`, lockfiles and generated files. If nothing changed in `apps/` or
 `packages/`, say so and stop.
 
@@ -71,11 +72,12 @@ small snippet is fine, not a full rewrite).
 
 For each changed unit, add or extend a co-located `*.spec.ts`:
 
-| Code                                                | Test location                               | How                                                                                          |
-| --------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Pure helpers in `packages/shared/src/**`            | next to the file, e.g. `utils/time.spec.ts` | plain Vitest, no mocks                                                                       |
-| Helpers in `apps/api/src/common/utils/**`           | next to the file                            | plain Vitest                                                                                 |
-| Nest services in `apps/api/src/modules/**/services` | next to the service                         | instantiate the class with a mocked `PrismaService` (`vi.fn()` per model method used); no DB |
+| Code                                                | Test location                               | How                                                                           |
+| --------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------- |
+| Pure helpers in `packages/shared/src/**`            | next to the file, e.g. `utils/time.spec.ts` | plain Vitest, no mocks                                                        |
+| Helpers in `apps/api/src/common/utils/**`           | next to the file                            | plain Vitest                                                                  |
+| Nest services in `apps/api/src/modules/**/services` | next to the service                         | mock the actual injected dependencies (e.g. repository, cache, mailer); no DB |
+| Repositories, transactions and concurrency          | follow existing database-backed specs       | real dedicated test PostgreSQL; never use the development/production database |
 
 Rules:
 
@@ -85,8 +87,15 @@ Rules:
   (e.g. buffer example 18:00/20:00/20:15, slot exactly at closing, Sunday mapping,
   empty results, timezone).
 - Test names in English, describing behaviour (`it('rejects a slot that is not generated')`).
+- For booking concurrency, use one available candidate and parallel requests:
+  exactly one commits, the others conflict, and no partial allocations remain.
+  Also cover idempotent retries and failed rescheduling preserving the original booking.
+  Mocks cannot prove database locking or exclusion constraints.
+- Inspect `TEST_DATABASE_URL` handling without printing secrets. Report skipped
+  database suites explicitly; skipped tests do not establish a concurrency guarantee.
 - Do not change production code to make a test pass. If a test reveals a bug,
-  delete that test, and report the bug to the user as 🔴 instead.
+  keep the minimal regression test, report the bug as 🔴 with the failing command,
+  and stop. Never delete or weaken a valid assertion just to get a green suite.
 
 ## 6. Verify
 

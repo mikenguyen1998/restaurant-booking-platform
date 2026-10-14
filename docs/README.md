@@ -16,5 +16,10 @@
 | [decisions/](decisions/README.md)                                              | Architecture Decision Records                                     |
 | [open-questions.md](open-questions.md)                                         | Unresolved business questions and pending technical decisions     |
 
-Status: Phase 1 (domain specification) complete and awaiting review. The domain
-documents describe intended behaviour; nothing beyond the scaffold is implemented.
+Current implementation includes the database, public restaurant API, session auth
+and most of the availability read path. Booking writes and the product web UI are
+still pending. Domain documents describe intended behaviour and include proposals;
+some older status statements have not been updated.
+
+See [NEXT-STEPS.md](NEXT-STEPS.md) for the implementation order and
+`/review-and-test` workflow; [TODO.md](TODO.md) for the detailed checklist.

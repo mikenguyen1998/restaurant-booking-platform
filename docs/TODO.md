@@ -3,7 +3,9 @@
 Your personal checklist for finishing the project. Tick boxes as you go (`[ ]` → `[x]`).
 Each item has a link to read if you get stuck. 📘 = project doc in this repo, 🌐 = external guide.
 
-Recommended order: **4 → 3 → 5 → 6 → 7 → 10**, then 8, 9, 11 if you have time.
+Recommended order: **finish 3 + 4 → 5 (including tests in CI) → 6 → 7 → 8 → 9 → 10**;
+11 remains stretch. See [NEXT-STEPS.md](NEXT-STEPS.md) for current priorities and
+the `/review-and-test` workflow.
 
 ---
 
@@ -106,7 +108,7 @@ Read first: 📘 [restaurant-lifecycle.md](domain/restaurant-lifecycle.md) · �
   - 🌐 [NestJS — controllers](https://docs.nestjs.com/controllers)
   - 🌐 [NestJS — validation](https://docs.nestjs.com/techniques/validation)
 - [ ] Manage tables/resources, opening hours, closures, booking settings
-- [ ] List / confirm / mark no-show bookings (owner can only see own restaurants)
+- [ ] List / mark no-show bookings (owner can only see own restaurants; online bookings confirm in the creation transaction)
 - [ ] Admin: approve / reject restaurants
 
 ## 7. Web app (Next.js)

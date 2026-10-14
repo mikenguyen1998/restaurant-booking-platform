@@ -1,25 +1,25 @@
 # Project Progress
 
-Last updated: 2026-10-06 · Legend: ✅ done · 🚧 in progress · ⬜ todo
+Last updated: 2026-10-14 · Legend: ✅ done · 🚧 in progress · ⬜ todo
 
 Step-by-step checklist with guides: [TODO.md](TODO.md)
 
 ## Overview
 
-| Phase                                | Status | Progress |
-| ------------------------------------ | ------ | -------- |
-| 0. Foundation                        | ✅     | 100%     |
-| 1. Database                          | ✅     | 100%     |
-| 2. Restaurants API (public)          | ✅     | 100%     |
-| 3. Auth & Users                      | 🚧     | ~80%     |
-| 4. Availability engine               | 🚧     | ~5%      |
-| 5. Booking flow + concurrency        | ⬜     | 0%       |
-| 6. Owner dashboard API               | ⬜     | 0%       |
-| 7. Web app (Next.js)                 | ⬜     | 0%       |
-| 8. Background jobs & notifications   | ⬜     | 0%       |
-| 9. Reviews / favorites / collections | ⬜     | 0%       |
-| 10. Quality, deploy & portfolio      | ⬜     | ~15%     |
-| 11. AI feature (stretch)             | ⬜     | 0%       |
+| Phase                                | Status | Progress                                              |
+| ------------------------------------ | ------ | ----------------------------------------------------- |
+| 0. Foundation                        | ✅     | 100%                                                  |
+| 1. Database                          | ✅     | 100%                                                  |
+| 2. Restaurants API (public)          | ✅     | 100%                                                  |
+| 3. Auth & Users                      | 🚧     | ~80%                                                  |
+| 4. Availability engine               | 🚧     | Most read-path items done; write invalidation pending |
+| 5. Booking flow + concurrency        | ⬜     | 0%                                                    |
+| 6. Owner dashboard API               | ⬜     | 0%                                                    |
+| 7. Web app (Next.js)                 | ⬜     | 0%                                                    |
+| 8. Background jobs & notifications   | ⬜     | 0%                                                    |
+| 9. Reviews / favorites / collections | ⬜     | 0%                                                    |
+| 10. Quality, deploy & portfolio      | ⬜     | ~15%                                                  |
+| 11. AI feature (stretch)             | ⬜     | 0%                                                    |
 
 ---
 
@@ -101,7 +101,7 @@ Following https://docs.nestjs.com/security/authentication (`@nestjs/authenticati
 
 - [ ] CRUD restaurant (DRAFT → PENDING_APPROVAL)
 - [ ] Manage tables/resources, opening hours, closures, booking settings
-- [ ] List / confirm / mark no-show bookings
+- [ ] List / mark no-show bookings (online booking confirms inside creation transaction)
 - [ ] Admin: approve / reject restaurants
 
 ## 7. Web app (Next.js) ⬜
@@ -147,6 +147,9 @@ Following https://docs.nestjs.com/security/authentication (`@nestjs/authenticati
 
 ## Next up
 
-1. Implement slot generation + allocation in `AvailabilityService` (phase 4).
-2. Auth & roles (phase 3) — needed before bookings.
-3. Build `POST /bookings` with a double-booking guard + concurrency test (phase 5).
+1. Roles / policies and ownership checks (phase 3); review with `/review-and-test`.
+2. Confirm booking policies and review availability cache invalidation (phase 4).
+3. Prepare schema/migrations for overlap prevention and idempotency, then build
+   `POST /bookings` with real PostgreSQL concurrency tests (phase 5).
+
+See [NEXT-STEPS.md](NEXT-STEPS.md) for the full sequence and acceptance criteria.

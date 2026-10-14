@@ -3,13 +3,15 @@
 A real-world full-stack application for discovering restaurants and managing
 reservations.
 
-> **Status: Phase 1 (domain specification) in review.** The repository contains
-> the architectural skeleton and the domain documentation in [`docs/`](docs/README.md).
-> No product features are implemented yet. Initial market: Hanoi, Vietnam.
+> **Status: backend implementation in progress.** Database, public restaurant API,
+> session authentication and most of the availability read path are implemented.
+> Booking writes and the product web UI are pending. Initial market: Hanoi, Vietnam.
+> See [next steps](docs/NEXT-STEPS.md) and [progress](docs/PROGRESS.md).
 
 ## Planned capabilities
 
-None of these exist yet:
+The full product scope below is planned; public restaurant reads and availability
+already have backend implementations:
 
 - Restaurant discovery
 - Search and filtering
@@ -27,8 +29,8 @@ None of these exist yet:
 ## Planned architecture
 
 This is the intended high-level architecture (details in
-[docs/architecture](docs/architecture/README.md)). Only the web and API shells and
-the local PostgreSQL and Redis containers exist today.
+[docs/architecture](docs/architecture/README.md)). PostgreSQL and Redis are wired
+into the API; Elasticsearch, object storage and the worker are still planned.
 
 ```text
 Next.js Web
@@ -112,22 +114,28 @@ pnpm dev              # web on http://localhost:3000, API on http://localhost:40
 
 ### Root commands
 
-| Command            | Description                                          |
-| ------------------ | ---------------------------------------------------- |
-| `pnpm dev`         | Run all apps and package watchers                    |
-| `pnpm build`       | Build all packages and apps                          |
-| `pnpm lint`        | Lint all workspaces                                  |
-| `pnpm typecheck`   | Type-check all workspaces                            |
-| `pnpm format`      | Format with Prettier                                 |
-| `pnpm db:generate` | Generate the Prisma client                           |
-| `pnpm db:migrate`  | Create/apply Prisma migrations (development)         |
-| `pnpm db:studio`   | Open Prisma Studio                                   |
-| `pnpm docker:up`   | Start local PostgreSQL and Redis                     |
-| `pnpm docker:down` | Stop local services (data is kept in Docker volumes) |
+| Command            | Description                                                      |
+| ------------------ | ---------------------------------------------------------------- |
+| `pnpm dev`         | Run all apps and package watchers                                |
+| `pnpm build`       | Build all packages and apps                                      |
+| `pnpm lint`        | Lint all workspaces                                              |
+| `pnpm typecheck`   | Type-check all workspaces                                        |
+| `pnpm test`        | Run workspace test suites (DB suites need test DB configuration) |
+| `pnpm format`      | Format with Prettier                                             |
+| `pnpm db:generate` | Generate the Prisma client                                       |
+| `pnpm db:migrate`  | Create/apply Prisma migrations (development)                     |
+| `pnpm db:studio`   | Open Prisma Studio                                               |
+| `pnpm docker:up`   | Start local PostgreSQL and Redis                                 |
+| `pnpm docker:down` | Stop local services (data is kept in Docker volumes)             |
 
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+For code review followed by test writing in Claude Code, use `/review-and-test`.
+The existing [skill](.claude/skills/review-and-test/SKILL.md) reviews uncommitted
+code, runs checks, and adds tests when the review passes. It leaves feature fixes
+and commits to the author. See [next steps](docs/NEXT-STEPS.md) for details.
 
 ## License
 
