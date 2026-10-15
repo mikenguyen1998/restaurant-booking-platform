@@ -8,20 +8,16 @@ Step-by-step checklist with guides: [TODO.md](TODO.md).
 
 ## Overview
 
-| Phase                                | Status | Progress                                            |
-| ------------------------------------ | ------ | --------------------------------------------------- |
-| 0. Foundation                        | ✅     | 100%                                                |
-| 1. Database                          | ✅     | 100%                                                |
-| 2. Restaurants API (public)          | ✅     | 100%                                                |
-| 3. Auth & Users                      | 🚧     | ~80%                                                |
-| 4. Availability engine               | 🚧     | Read path exists; #4 policy gaps and writes pending |
-| 5. Booking flow + concurrency        | ⬜     | 0%                                                  |
-| 6. Owner dashboard API               | ⬜     | 0%                                                  |
-| 7. Web app (Next.js)                 | ⬜     | 0%                                                  |
-| 8. Background jobs & notifications   | ⬜     | 0%                                                  |
-| 9. Reviews / favorites / collections | ⬜     | 0%                                                  |
-| 10. Quality, deploy & portfolio      | ⬜     | ~15%                                                |
-| 11. AI feature (stretch)             | ⬜     | 0%                                                  |
+Evidence baseline: main `144aeac` after PR #29, verified 15 October 2026. Full commands/results and environment limits: [issues #3/#5 verification](verification/issues-3-5.md). Implemented is not synonymous with verified or policy-complete.
+
+| Area                           | Implemented / source evidence                                                       | Actually verified                                                                                       | Pending / blocker                                                                                                  |
+| ------------------------------ | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Foundation/database            | Compose, schema, six migrations, seed                                               | Fresh isolated install/generation/migrations/seed; Node 24 full build                                   | Booking persistence extensions still pending                                                                       |
+| Restaurants API                | Public list/detail/reviews/availability controllers                                 | Startup/OpenAPI plus HTTP smoke                                                                         | Parent approval check absent on review list (static gap); full #4 availability policy missing                      |
+| Auth/users                     | Session controllers, verification/reset, /me                                        | Existing tests, 24 PostgreSQL contracts, HTTP/CSRF smoke                                                | Roles/ownership use cases and booking verified-email gate (#6+)                                                    |
+| Availability/cache             | Read path, Keyv Redis, version invalidation                                         | Three retained Redis contracts                                                                          | Delayed invalidation revives stale version: reproduced application race, not fixed                                 |
+| CI/tests (#5)                  | Migrate/test/format/build gate, real services, Turbo test cache disabled            | Prior #28/#29 green remote logs; two local suites, concurrent APIs, missing-env and failure propagation | New tests/config not pushed or remotely run; no intentional failing Actions run; cache race blocks full acceptance |
+| Booking/owner/admin/web/worker | Registered 501 service scaffolds; responsive discovery/auth UI and workspace shells | 31 web routes and 80 API method/path registrations smoke-tested locally                                 | Booking writes, role/ownership enforcement for stubs, worker, engagement and deployment remain pending             |
 
 ---
 
@@ -29,7 +25,7 @@ Step-by-step checklist with guides: [TODO.md](TODO.md).
 
 - [x] pnpm + Turborepo monorepo (`apps/api`, `apps/web`, `packages/*`)
 - [x] Docker Compose: Postgres + Redis
-- [x] CI: typecheck, lint, build
+- [x] CI: typecheck, lint, test-database migrations, tests, format check, build (PR #28; prior remote logs linked above)
 - [x] Domain docs (`docs/domain/*`)
 
 ## 1. Database ✅
@@ -132,7 +128,10 @@ Following https://docs.nestjs.com/security/authentication (`@nestjs/authenticati
 ## 10. Quality, deploy & portfolio ⬜
 
 - [x] CI pipeline
-- [ ] Tests in CI (unit + e2e with Postgres service)
+- [x] Existing unit + PostgreSQL authentication tests gated in CI with fresh migrations and Redis services (PR #28)
+- [x] Locally verified per-run auth schemas, 3 real Redis contracts, missing-env guards, repeat cleanup and concurrent API runs
+- [ ] New test/config changes verified on GitHub; intentional failing remote run not performed
+- [ ] Application fix for reproduced non-atomic availability invalidation; #5 cache-race acceptance remains blocked
 - [ ] Dockerfile for API
 - [ ] Deploy: web → Vercel, API + DB + Redis → Railway/Fly/Render
 - [ ] README: architecture diagram, screenshots, live demo link
@@ -149,9 +148,13 @@ Following https://docs.nestjs.com/security/authentication (`@nestjs/authenticati
 
 ## Next up
 
-1. Roles / policies and ownership checks (phase 3); review with `/review-and-test`.
-2. Refine unresolved decisions/technical designs and reconcile availability implementation with accepted #4 policy (phase 4); documentation only in this task.
+1. Developer review/fix of the reproduced availability invalidation race; preserve accepted #4 policy. This task does not modify application code.
+2. Review the #3/#5 verification report and run the unpushed test/config diff remotely when authorized; do not mark remote failure propagation proven from local checks.
 3. Prepare schema/migrations for overlap prevention and idempotency, then build
    `POST /bookings` with real PostgreSQL concurrency tests (phase 5).
 
 See [NEXT-STEPS.md](NEXT-STEPS.md) for the full sequence and acceptance criteria.
+
+## Later application skeleton
+
+User-authorized FE/BE scaffolding now supplies discovery/auth UI, account/owner/admin layouts/pages and registered 501 backend handlers. [Skeleton guide](architecture/application-skeleton.md) distinguishes working flows from placeholders. Existing progress/verification above is historical evidence; a route scaffold is not implemented booking, ownership policy, transaction or worker behavior.

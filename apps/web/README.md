@@ -1,33 +1,20 @@
 # @restaurant-platform/web
 
-Next.js (App Router) frontend, deployed to Vercel.
+Next.js 16 App Router FE skeleton with Vietnamese responsive UI: discovery/detail/availability, authentication, account/session management, and owner/admin workspaces. See the [application skeleton guide](../../docs/architecture/application-skeleton.md) for all routes and pending operations.
 
-| Path                    | Purpose                                                    |
-| ----------------------- | ---------------------------------------------------------- |
-| `src/app/(public)`      | Public routes (discovery, restaurant profiles)             |
-| `src/app/(auth)`        | Authentication routes                                      |
-| `src/app/dashboard`     | Signed-in user / restaurant dashboard routes               |
-| `src/app/admin`         | Platform administration routes                             |
-| `src/components/ui`     | App-specific primitives (shared ones go in `packages/ui`)  |
-| `src/components/layout` | Layout building blocks (header, footer, shells)            |
-| `src/components/shared` | Components reused across features                          |
-| `src/features/*`        | Feature modules (components, hooks, API calls per feature) |
-| `src/lib`               | Framework-level helpers                                    |
-| `src/providers`         | React context providers                                    |
-| `src/styles`            | Global CSS and Tailwind entry point                        |
+- `src/app`: route/layout/loading/error/not-found entries.
+- `src/features`: restaurant, auth, booking and workspace components.
+- `src/lib`: credentialed API client and abortable resource hook.
+- `src/providers`: current-session state.
+- `src/components`: shared navigation/layout/empty/loading states.
+- `src/styles/globals.css`: responsive design tokens and styles.
 
-All directories are empty placeholders. Nothing is implemented yet.
-
-## Environment
-
-Next.js reads env files from this directory, not the repository root. Put
-`NEXT_PUBLIC_*` values in `apps/web/.env.local` (git-ignored). See the root
-`.env.example` for the variable names.
-
-## Commands
+Set NEXT_PUBLIC_API_URL in `apps/web/.env.local`; root .env is not the browser env source. Set API WEB_URL to the web origin. Existing cookie-session login/verification/reset and public reads use the API; pending booking/owner/admin forms do not submit or save fake data. Role/ownership business authorization remains future backend work.
 
 ```bash
-pnpm --filter @restaurant-platform/web dev        # http://localhost:3000
+pnpm --filter @restaurant-platform/web dev
 pnpm --filter @restaurant-platform/web build
 pnpm --filter @restaurant-platform/web typecheck
 ```
+
+Root setup, database generation/migrations/seed and API startup are documented in [README](../../README.md#fresh-local-setup). No extra dependency installation is required for the new skeleton.

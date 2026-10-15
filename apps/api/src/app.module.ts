@@ -1,3 +1,7 @@
+import { FavoritesModule } from './modules/favorites/favorites.module.js';
+import { SearchModule } from './modules/search/search.module.js';
+import { RecommendationsModule } from './modules/recommendations/recommendations.module.js';
+import { LocationsModule } from './modules/locations/locations.module.js';
 import { AuthenticationModule } from '@nestjs/authentication';
 import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
@@ -36,6 +40,10 @@ import { AuthThrottlerGuard } from './common/guards/auth-throttler.guard.js';
     NotificationsModule,
     AdminModule,
     HealthModule,
+    FavoritesModule,
+    SearchModule,
+    RecommendationsModule,
+    LocationsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: AuthThrottlerGuard }],
 })

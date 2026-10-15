@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
+import { AdminController } from './controllers/admin.controller.js';
+import { AdminService } from './services/admin.service.js';
 
-// TODO: admin module. Structure: controllers/, services/, dto/, entities/, repositories/.
-@Module({})
+@Module({ controllers: [AdminController], providers: [AdminService] })
 export class AdminModule {}

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
+import { ReviewsController } from './controllers/reviews.controller.js';
+import { ReviewsService } from './services/reviews.service.js';
 
-// TODO: reviews module. Structure: controllers/, services/, dto/, entities/, repositories/.
-@Module({})
+@Module({ controllers: [ReviewsController], providers: [ReviewsService] })
 export class ReviewsModule {}

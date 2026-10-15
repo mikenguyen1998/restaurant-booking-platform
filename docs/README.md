@@ -27,3 +27,9 @@ See [NEXT-STEPS.md](NEXT-STEPS.md) for the implementation order and
 ## Booking policy reconciliation
 
 [Issue #4](https://github.com/mikenguyen1998/restaurant-booking-platform/issues/4) is the accepted booking baseline. [Open questions](open-questions.md) preserves Q IDs and maps issue topics to resolution status. Domain documents own detailed policy; [implementation status](product/implementation-status.md) distinguishes current source from pending implementation and unresolved/technical work. Policy acceptance and documentation reconciliation do not establish implemented booking writes.
+
+## Setup and CI evidence
+
+[Existing API reference](api/README.md) documents actual method/path/auth/CSRF/DTO/response/error behavior, including the installed authentication library route audit. [Issues #3/#5 verification](verification/issues-3-5.md) records isolated fresh setup, repeat/concurrent real-service tests, failure propagation limits and application blockers.
+
+[FE/BE application skeleton](architecture/application-skeleton.md) tracks the later application scaffolding and its pending implementation boundaries.

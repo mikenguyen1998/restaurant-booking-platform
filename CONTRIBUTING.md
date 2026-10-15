@@ -9,11 +9,12 @@ Follow the setup steps in [README.md](README.md#development).
 ```bash
 pnpm typecheck
 pnpm lint
+pnpm test
 pnpm build
 pnpm format:check
 ```
 
-CI runs install, typecheck, lint, and build on every pull request.
+CI provisions PostgreSQL/Redis, installs dependencies, typechecks/lints, applies committed test-database migrations, runs tests, checks formatting and builds. Tests are not Turbo-cached. See [isolated test setup and evidence](docs/verification/issues-3-5.md); integration env is mandatory in CI.
 
 ## Guidelines
 

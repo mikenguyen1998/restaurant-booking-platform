@@ -1,72 +1,32 @@
 # @restaurant-platform/api
 
-NestJS backend (ESM, TypeScript strict), deployed to Node.js-compatible hosting.
+NestJS ESM API. Implemented: public restaurant/availability reads, health, cookie-session authentication, verification/reset and current user. Booking/owner/admin and other reserved routes now have module/controller/service scaffolds returning 501. Worker ports remain non-operational. See [skeleton guide](../../docs/architecture/application-skeleton.md). See [HTTP API reference](../../docs/api/README.md) and [implementation gaps](../../docs/product/implementation-status.md).
 
-| Path                | Purpose                                                   |
-| ------------------- | --------------------------------------------------------- |
-| `src/main.ts`       | Bootstrap; listens on `API_PORT` (default `4000`)         |
-| `src/app.module.ts` | Root module; imports the feature modules                  |
-| `src/modules/*`     | Feature modules (empty)                                   |
-| `src/common/`       | Cross-cutting pieces (filters, guards, pipes, decorators) |
-| `src/config/`       | Configuration loading and validation                      |
-| `src/database/`     | Integration with `@restaurant-platform/database`          |
-| `src/jobs/`         | Background worker / job definitions                       |
+`src/modules/*` uses controllers/services/repositories/DTOs; `src/common` owns filters, guards and helpers; `src/config` defines auth/cache/mail/throttling; `src/database` wraps Prisma. Planned architecture is not a claim that these directories are empty.
 
-Each feature module (`auth`, `users`, `restaurants`, `bookings`, `reviews`,
-`collections`, `notifications`, `admin`) has the same layout:
+## Environment and startup
 
-```text
-<module>/
-├── controllers/
-├── services/
-├── dto/
-├── entities/
-├── repositories/
-└── <module>.module.ts   # empty @Module({})
-```
-
-No controllers, services, or endpoints exist yet.
-
-## Environment
-
-Loading `.env` files is not wired up yet; it is part of the `src/config` design.
-Until then the API reads only variables already present in the process environment.
-
-## Commands
+Follow [fresh setup](../../README.md#fresh-local-setup) at the root: create root .env, start PostgreSQL/Redis, generate client, build shared, apply migrations and seed the selected new database. Bootstrap explicitly reads root .env; ConfigModule also reads process env. Without SMTP_URL, mail is written to local files, not sent.
 
 ```bash
-pnpm --filter @restaurant-platform/api dev         # watch mode, http://localhost:4000
-pnpm --filter @restaurant-platform/api build
-pnpm --filter @restaurant-platform/api start:prod  # run the compiled build
-pnpm --filter @restaurant-platform/api test        # Vitest unit + database contract tests
+pnpm --filter @restaurant-platform/api dev
+# Compiled alternative, after building dependencies:
+pnpm --filter @restaurant-platform/api... build
+pnpm --filter @restaurant-platform/api start:prod
 ```
+
+API_PORT defaults to 4000; `/health`, `/api` and `/api-json` are available. Browser writes use the WEB_URL origin/CSRF checks and session-cookie contract in the API reference.
 
 ## Tests
 
-Run `pnpm test` from the repository root. Vitest reads the root `.env`.
-The auth store contract suite needs a disposable PostgreSQL database specified
-by `TEST_DATABASE_URL`; its database name must end in `_test`. It truncates auth
-tables between cases. Never point it at the development or production database.
-Without `TEST_DATABASE_URL`, the database suite is skipped.
-
-Start Docker Desktop, then PostgreSQL:
+See [root test setup](../../README.md#tests-and-ci) and [verification report](../../docs/verification/issues-3-5.md).
 
 ```bash
-docker compose up -d postgres
-```
-
-For the default local credentials from `.env.example`, first-time setup is:
-
-```bash
-# Only create the database if it does not already exist.
-docker compose exec postgres createdb -U restaurant restaurant_platform_test
-
-# Use the same dedicated URL in the root .env as TEST_DATABASE_URL.
-export TEST_DATABASE_URL='postgresql://restaurant:restaurant@localhost:5432/restaurant_platform_test?schema=public'
-DATABASE_URL="$TEST_DATABASE_URL" pnpm --filter @restaurant-platform/database db:migrate:deploy
 pnpm test
+# Focused integration contracts (requires migrated TEST_DATABASE_URL and REDIS_URL):
+pnpm --filter @restaurant-platform/api test src/modules/auth/repositories/prisma-authentication.store.spec.ts src/config/redis.integration.spec.ts
 ```
 
-Adjust credentials/port to match your local Compose configuration. Applying
-migrations must target the test URL, not the normal `DATABASE_URL`. An unavailable
-server or missing auth tables now produces a setup error before any cleanup runs.
+Auth tests only accept a database name ending `_test`; each suite/process creates a unique schema and clones the six migrated public auth tables with defaults/checks/indexes. Those tables currently have no foreign keys; the helper fails if that changes. Contract cleanup truncates only that schema and teardown drops it. It does not migrate/reset/seed a developer database. Redis tests own UUID keys and disconnect their clients; no FLUSHDB. CI errors on missing TEST_DATABASE_URL or REDIS_URL before loading local env or skipping suites. Local runs load root .env and may skip unconfigured service suites.
+
+A cache invalidation race was reproduced separately; the green retained suite does not mean that race is fixed. See the blocker in the verification report.

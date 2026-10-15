@@ -5,6 +5,7 @@ import { PrismaClient } from '@restaurant-platform/database';
 import { afterAll, beforeAll, describe, it } from 'vitest';
 import type { PrismaService } from '../../../database/prisma.service.js';
 import { PrismaAuthenticationStore } from './prisma-authentication.store.js';
+import { authTestDatabase } from '../../../../test/helpers/auth-database.js';
 
 // The library's own contract suite, against a real PostgreSQL with a connection pool,
 // so the concurrency cases (parallel refreshes, parallel link uses) race for real.
@@ -19,11 +20,18 @@ class CappedStore extends PrismaAuthenticationStore {
 describe.skipIf(!url)(
   `PrismaAuthenticationStore contract${url ? '' : ' (skipped: TEST_DATABASE_URL not set)'}`,
   () => {
+    const database = url ? authTestDatabase(url) : undefined;
     const prisma = new PrismaClient({
-      adapter: new PrismaPg({ connectionString: url, max: 10 }),
+      adapter: new PrismaPg(
+        { connectionString: database?.url, max: 10 },
+        { schema: database?.schema },
+      ),
     }) as unknown as PrismaService;
 
-    afterAll(() => prisma.$disconnect());
+    afterAll(async () => {
+      await prisma.$disconnect();
+      await database?.drop();
+    });
 
     beforeAll(async () => {
       const databaseName = new URL(url!).pathname.slice(1);
@@ -34,6 +42,7 @@ describe.skipIf(!url)(
       }
 
       try {
+        await database!.create();
         // Check connectivity and schema once, before any destructive cleanup.
         await prisma.$queryRaw`
           SELECT 1 FROM "Session", "RefreshToken", "EmailToken",

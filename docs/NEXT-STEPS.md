@@ -24,11 +24,13 @@ booking được phân bổ thành công vào `CONFIRMED` ngay trong transaction
 - Booking module và phần lớn web vẫn là scaffold. Migration hiện chưa có
   exclusion constraint chống overlap; schema chưa có idempotency, booking
   events và transactional outbox như thiết kế đề xuất.
-- CI hiện chạy typecheck/lint/build, chưa chạy tests. Một số test database
-  được skip khi thiếu `TEST_DATABASE_URL`.
-- README, docs API/database/architecture và phần trăm trong PROGRESS có nội
-  dung cũ. `docs/database/proposed-*` là thiết kế đề xuất; schema và migrations
+- CI đã chạy migrations/tests/format/build cùng typecheck/lint và services PostgreSQL/Redis (PR #28). Config bổ sung trong diff này fail khi CI thiếu TEST_DATABASE_URL hoặc REDIS_URL; local thiếu env vẫn có thể skip service suites. Xem [verification](verification/issues-3-5.md) để phân biệt prior remote evidence với checks local.
+- README/API/setup và PROGRESS đã được đối chiếu source + fresh isolated verification; các bước booking chưa triển khai không được coi là verified. `docs/database/proposed-*` là thiết kế đề xuất; schema và migrations
   trong `packages/database` mới phản ánh cấu trúc đang triển khai.
+
+## Kiểm chứng #3/#5 hiện tại
+
+API 121 + shared 11 tests pass trong hai lần root suite; hai API process đồng thời cũng đạt. Thêm 3 Redis contracts có ý nghĩa và per-run PostgreSQL schemas. Temporary failure/missing-env probes đều non-zero; chưa chạy intentional failure trên GitHub. Cache invalidation race đã tái hiện (version cũ ghi đè version mới), application code giữ nguyên; #5 chưa hoàn tất phần race. Chi tiết và đề xuất sửa ở [report](verification/issues-3-5.md). Không chuyển sang #6 trong lượt này.
 
 ## Thứ tự thực hiện
 
@@ -79,5 +81,8 @@ Nếu test mới phát hiện bug, giữ regression test và báo lỗi để s�
 Trong môi trường agent khác, yêu cầu đọc file skill trên và thực hiện workflow;
 không mặc định giao diện đó có cùng slash command.
 
-Task tiếp theo nên nhỏ: **roles/policies + kiểm tra ownership**, chạy
-`/review-and-test`, rồi chuẩn bị migration chống overlap và idempotency.
+Task tiếp theo cho developer: xử lý blocker cache invalidation đã ghi nhận; review diff tài liệu/tests và chạy CI khi được phép push. Roles/ownership (#6) và booking implementation là follow-up riêng, không được triển khai bởi lượt này.
+
+## Application skeleton follow-up
+
+The later user-authorized [FE/BE skeleton](architecture/application-skeleton.md) adds discovery/auth UI and registered 501 entry points. Implement transactional services, DTOs and role/ownership authorization before enabling pending writes; do not count scaffolds as completed business behavior.

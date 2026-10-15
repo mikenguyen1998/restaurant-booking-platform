@@ -7,6 +7,8 @@ Recommended order: **finish 3 + 4 → 5 (including tests in CI) → 6 → 7 → 
 11 remains stretch. See [NEXT-STEPS.md](NEXT-STEPS.md) for current priorities and
 the `/review-and-test` workflow.
 
+Current #3/#5 evidence: [verification report](verification/issues-3-5.md). CI already runs migrations/tests/format/build. New helpers and 3 Redis contracts passed locally (API 121 + shared 11); remote execution of this diff is pending. Availability invalidation race is a reproduced application blocker; no #6 implementation in this task.
+
 ---
 
 ## 4. Availability engine
@@ -159,7 +161,10 @@ Read first: 📘 [restaurant-lifecycle.md](domain/restaurant-lifecycle.md) · �
 
 ## 10. Quality, deploy & portfolio
 
-- [ ] Tests in CI (unit + e2e with a Postgres service)
+- [x] CI runs current unit/auth PostgreSQL tests, migrations and formatting/build (PR #28)
+- [x] Local repeated/concurrent suite verification, per-run auth schemas, real Redis TTL/cache/throttling contracts and missing-env guards
+- [ ] Remote verification of new test/config changes and any intentional failing Actions run
+- [ ] Developer fix for stale cache-version invalidation race (do not treat green retained tests as proof this race is solved)
   - 🌐 [GitHub Actions — PostgreSQL service containers](https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers)
 - [ ] Dockerfile for the API
   - 🌐 [pnpm — working with Docker](https://pnpm.io/docker)
@@ -182,3 +187,7 @@ Read first: 📘 [restaurant-lifecycle.md](domain/restaurant-lifecycle.md) · �
   - 🌐 [Claude — tool use overview](https://docs.claude.com/en/docs/agents-and-tools/tool-use/overview)
 - [ ] Streaming chat UI
   - 🌐 [Vercel AI SDK — chatbot UI](https://ai-sdk.dev/docs/ai-sdk-ui/chatbot)
+
+## Application skeleton follow-up
+
+The later user-authorized [FE/BE skeleton](architecture/application-skeleton.md) adds discovery/auth UI and registered 501 entry points. Implement transactional services, DTOs and role/ownership authorization before enabling pending writes; do not count scaffolds as completed business behavior.

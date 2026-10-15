@@ -3,6 +3,8 @@
 Status: mixed **implemented behavior** and **technical proposal**. Auth/session, restaurant/availability reads, PostgreSQL and Redis integration exist. Booking writes, owner operations, outbox/booking worker and the layered redesign below remain pending. Accepted product policy in [issue #4](https://github.com/mikenguyen1998/restaurant-booking-platform/issues/4) does not approve these technical choices. See [implementation status](../product/implementation-status.md). Technology choices marked `T-xx` are pending in
 [open-questions.md](../open-questions.md#technical-decisions).
 
+Current runtime/setup and CI evidence is recorded in [issues #3/#5 verification](../verification/issues-3-5.md); the unpushed helper/config checks were local, not a new GitHub run. Active authentication is session-based; stale JWT comments in source do not override the configuration.
+
 ## System context
 
 ```mermaid

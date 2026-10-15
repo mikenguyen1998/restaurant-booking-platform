@@ -1,5 +1,9 @@
 import { Module } from '@nestjs/common';
+import { CollectionsController } from './controllers/collections.controller.js';
+import { CollectionsService } from './services/collections.service.js';
 
-// TODO: collections module. Structure: controllers/, services/, dto/, entities/, repositories/.
-@Module({})
+@Module({
+  controllers: [CollectionsController],
+  providers: [CollectionsService],
+})
 export class CollectionsModule {}
