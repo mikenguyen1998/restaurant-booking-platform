@@ -66,3 +66,7 @@ Operational booking writes are absent; registered booking controllers/services a
 Idempotency must authorize actor/key/intent replay and reject changed fingerprints without editing. Header format, key storage, secure guest scope and private replay DTO remain **technical proposal / pending design** in [issue #12](https://github.com/mikenguyen1998/restaurant-booking-platform/issues/12). No new routes, status codes or replay payload fields are finalized here.
 
 Arrival/contact/hold/correction routes, snapshot semantics and notification rescheduling also require technical contracts; the 24-hour correction anchor remains an unresolved product decision. A passing auth/availability suite cannot establish these missing booking behaviors.
+
+## Booking MVP transport follow-up
+
+Booking controllers now pass the existing session actor, UUID params, validated DTOs and create idempotency keys to typed service boundaries. Owner/admin booking handlers have moved into BookingsModule without implementing their policy. See the [complete booking transport table](../architecture/booking-mvp-handoff.md#contract-and-frontend) for 19 methods, proposed responses and explicit 501 limitations; these remain outside the operational endpoint reference above.

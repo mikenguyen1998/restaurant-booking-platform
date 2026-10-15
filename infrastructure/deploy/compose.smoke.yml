@@ -1,0 +1,77 @@
+# Disposable local verification only. Never use these credentials for deployment.
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: smoke
+      POSTGRES_PASSWORD: smoke
+      POSTGRES_DB: booking_smoke_test
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U smoke -d booking_smoke_test]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  redis:
+    image: redis:8-alpine
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  migrate:
+    image: rbp-booking-skeleton:verification
+    command:
+      [pnpm, --filter, '@restaurant-platform/database', 'db:migrate:deploy']
+    environment:
+      DATABASE_URL: postgresql://smoke:smoke@postgres:5432/booking_smoke_test
+    depends_on:
+      postgres:
+        condition: service_healthy
+  api:
+    image: rbp-booking-skeleton:verification
+    command: [sh, infrastructure/deploy/start-api.sh]
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://smoke:smoke@postgres:5432/booking_smoke_test
+      REDIS_URL: redis://redis:6379
+      WEB_URL: http://localhost:53039
+      MAIL_FROM: 'Preview <no-reply@example.test>'
+    ports: ['127.0.0.1:54039:4000']
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://localhost:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 3s
+      timeout: 4s
+      retries: 30
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+  web:
+    image: rbp-booking-skeleton:verification
+    command: [sh, infrastructure/deploy/start-web.sh]
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    ports: ['127.0.0.1:53039:3000']
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://localhost:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 3s
+      timeout: 4s
+      retries: 30
+    depends_on:
+      api:
+        condition: service_healthy

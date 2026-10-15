@@ -33,3 +33,6 @@ See [NEXT-STEPS.md](NEXT-STEPS.md) for the implementation order and
 [Existing API reference](api/README.md) documents actual method/path/auth/CSRF/DTO/response/error behavior, including the installed authentication library route audit. [Issues #3/#5 verification](verification/issues-3-5.md) records isolated fresh setup, repeat/concurrent real-service tests, failure propagation limits and application blockers.
 
 [FE/BE application skeleton](architecture/application-skeleton.md) tracks the later application scaffolding and its pending implementation boundaries.
+
+- [Booking MVP contract and implementation handoff](architecture/booking-mvp-handoff.md)
+- [Deployment configuration and smoke instructions](architecture/deployment-readiness.md)

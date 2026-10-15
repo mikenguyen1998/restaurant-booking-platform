@@ -1,10 +1,4 @@
-import { PendingWorkspace } from '@/features/dashboard/pending-workspace';
+import { BookingManagement } from '@/features/bookings/booking-management';
 export default function Page() {
-  return (
-    <PendingWorkspace
-      title="Đặt chỗ của tôi"
-      description="Những cuộc hẹn sắp tới và bữa ăn đã qua."
-      columns={['Nhà hàng', 'Thời gian', 'Số khách', 'Trạng thái']}
-    />
-  );
+  return <BookingManagement scope="customer" />;
 }

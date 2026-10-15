@@ -1,0 +1,17 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "infrastructure/deploy/Dockerfile"
+  },
+  "deploy": {
+    "startCommand": "sh infrastructure/deploy/start-api.sh",
+    "preDeployCommand": [
+      "pnpm --filter @restaurant-platform/database db:migrate:deploy"
+    ],
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 120,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3
+  }
+}

@@ -158,3 +158,7 @@ See [NEXT-STEPS.md](NEXT-STEPS.md) for the full sequence and acceptance criteria
 ## Later application skeleton
 
 User-authorized FE/BE scaffolding now supplies discovery/auth UI, account/owner/admin layouts/pages and registered 501 backend handlers. [Skeleton guide](architecture/application-skeleton.md) distinguishes working flows from placeholders. Existing progress/verification above is historical evidence; a route scaffold is not implemented booking, ownership policy, transaction or worker behavior.
+
+## Booking contract follow-up
+
+[Booking MVP handoff](architecture/booking-mvp-handoff.md) records actor-aware service/repository DI, typed transport and real form requests to pending 501 boundaries. [Railway/Cloudflare deployment preparation](architecture/deployment-readiness.md) supplies image/config/start/migration/health instructions. Business writes and policy/role checks remain pending; no deployment is claimed.

@@ -18,3 +18,5 @@ pnpm --filter @restaurant-platform/web typecheck
 ```
 
 Root setup, database generation/migrations/seed and API startup are documented in [README](../../README.md#fresh-local-setup). No extra dependency installation is required for the new skeleton.
+
+Booking forms now send typed requests through `src/lib/booking-api.ts`, including customer/owner/admin list/detail/change forms. Valid requests still return explicit 501; no business writes are implemented. See [booking handoff](../../docs/architecture/booking-mvp-handoff.md).

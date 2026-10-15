@@ -121,7 +121,7 @@ pnpm dev
 
 Generation produces the Prisma client; **migrate:deploy** applies committed migrations to the selected fresh database; generation alone does not create tables. Build shared before seed because seed imports the compiled shared package. `db:migrate` is for authoring development migrations, not required to reproduce the existing schema. Seed inserts Hanoi demo data (including an owner and existing allocations); it does not provision a usable seeded password login. Use sign-up for an interactive account.
 
-API defaults to `http://localhost:4000`, Swagger `/api`, health `/health`; web dev/start scripts use port 3000. Web provides discovery/auth flows and customer/owner/admin skeleton pages; booking submission and pending management actions are disabled. Stop dev with Ctrl-C; `pnpm docker:down` keeps service volumes.
+API defaults to `http://localhost:4000`, Swagger `/api`, health `/health`; web dev/start scripts use port 3000. Web provides discovery/auth flows and customer/owner/admin skeleton pages; booking forms call explicit 501 service boundaries while business logic remains pending. Stop dev with Ctrl-C; `pnpm docker:down` keeps service volumes.
 
 ### Environment
 
