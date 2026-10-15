@@ -44,31 +44,4 @@ export class OwnerRestaurantsService {
   createClosure() {
     return pendingFeature('Restaurant/resource closure creation');
   }
-  bookings() {
-    return pendingFeature('Owner reservations');
-  }
-  manualBooking() {
-    return pendingFeature('Manual booking creation');
-  }
-  arrival() {
-    return pendingFeature('Arrival recording');
-  }
-  contact() {
-    return pendingFeature('Contact evidence recording');
-  }
-  hold() {
-    return pendingFeature('Hold extension');
-  }
-  noShow() {
-    return pendingFeature('Manual no-show');
-  }
-  cancel() {
-    return pendingFeature('Customer-requested owner cancellation');
-  }
-  reschedule() {
-    return pendingFeature('Customer-requested rescheduling');
-  }
-  correct() {
-    return pendingFeature('Audited outcome correction');
-  }
 }

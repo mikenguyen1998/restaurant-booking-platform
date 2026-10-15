@@ -18,15 +18,6 @@ export class AdminController {
   @Post('restaurants/:id/suspend') suspend() {
     return this.service.suspend();
   }
-  @Get('bookings') bookings() {
-    return this.service.bookings();
-  }
-  @Post('bookings/:id/cancel') cancelBooking() {
-    return this.service.cancelBooking();
-  }
-  @Post('bookings/:id/reschedule') rescheduleBooking() {
-    return this.service.rescheduleBooking();
-  }
   @Get('users') users() {
     return this.service.users();
   }

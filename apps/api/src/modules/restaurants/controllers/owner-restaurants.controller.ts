@@ -46,31 +46,4 @@ export class OwnerRestaurantsController {
   @Post(':id/closures') createClosure() {
     return this.service.createClosure();
   }
-  @Get(':id/bookings') bookings() {
-    return this.service.bookings();
-  }
-  @Post(':id/bookings') manualBooking() {
-    return this.service.manualBooking();
-  }
-  @Post(':id/bookings/:bookingId/arrival') arrival() {
-    return this.service.arrival();
-  }
-  @Post(':id/bookings/:bookingId/contact') contact() {
-    return this.service.contact();
-  }
-  @Post(':id/bookings/:bookingId/hold') hold() {
-    return this.service.hold();
-  }
-  @Post(':id/bookings/:bookingId/no-show') noShow() {
-    return this.service.noShow();
-  }
-  @Post(':id/bookings/:bookingId/cancel') cancel() {
-    return this.service.cancel();
-  }
-  @Post(':id/bookings/:bookingId/reschedule') reschedule() {
-    return this.service.reschedule();
-  }
-  @Post(':id/bookings/:bookingId/correct') correct() {
-    return this.service.correct();
-  }
 }

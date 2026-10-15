@@ -15,15 +15,6 @@ export class AdminService {
   suspend() {
     return pendingFeature('Restaurant suspension');
   }
-  bookings() {
-    return pendingFeature('Admin booking listing');
-  }
-  cancelBooking() {
-    return pendingFeature('Admin cancellation');
-  }
-  rescheduleBooking() {
-    return pendingFeature('Admin rescheduling');
-  }
   users() {
     return pendingFeature('Admin user management');
   }

@@ -80,33 +80,4 @@ export interface SessionView {
   current: boolean;
 }
 
-/** Request skeletons only. Conditional authorization/policy remains pending. */
-export interface BookingContact {
-  name: string;
-  phone: string;
-  email?: string;
-}
-export interface CreateBookingRequest {
-  restaurantId: string;
-  date: string;
-  slot: string;
-  partySize: number;
-  preferredResourceType?: 'TABLE' | 'VIP_ROOM';
-  contact?: BookingContact;
-  specialRequest?: string;
-}
-export interface RescheduleBookingRequest {
-  date: string;
-  slot: string;
-  partySize: number;
-  reason?: string;
-}
-export const bookingStatuses = [
-  'PENDING',
-  'CONFIRMED',
-  'CANCELLED',
-  'COMPLETED',
-  'NO_SHOW',
-  'EXPIRED',
-] as const;
-export type BookingStatus = (typeof bookingStatuses)[number];
+export * from './booking.js';
